@@ -1,51 +1,73 @@
 open import Data.Unit
 open import Data.Empty
 open import Data.Nat
+open import Data.Product hiding (map)
+open import Function
+open import Relation.Binary.PropositionalEquality using (_≡_)
 
-data Ty0 : Set where
-  zero : Ty0
-  one : Ty0
+data Ty0 (I : Set) : Set where
 
-mutual
-  data Ty1 : Set where
-    zero : Ty1
-    one : Ty1
+data Ty1 (I : Set) : Set1 where
+  end : I -> Ty1 I
+  σ : (S : Set) -> (S -> Ty1 I) -> Ty1 I
+  node_×_ : I -> Ty1 I -> Ty1 I
+  quot : Ty0 I -> Ty1 I
 
-  Interp : Ty1 -> Set
-  Interp zero = ⊥
-  Interp one = ⊤
+^_ : {I : Set} -> Ty0 I -> Ty1 I
+^ R = {!   !}
 
-quot : Ty0 -> Ty1
-quot zero = zero
-quot one = one
+[[_]] : {I : Set} -> Ty1 I -> (I -> Set) -> (I -> Set)
+[[ end i' ]] I i = (i ≡ i')
+[[ σ S t ]] I i = Σ S (λ s -> [[ t s ]] I i)
+[[ node i' × U ]] I i = I i' × [[ U ]] I i
+[[ quot R ]] I i = {!   !}
 
-_over_ : Ty1 -> Ty1 -> Ty1
-zero over B = zero
-one over B = one
+data Fix {I : Set} (T : Ty1 I) (i : I) : Set where
+  <_> : [[ T ]] (Fix T) i -> Fix T i
 
-fold : {T : Ty1} -> {I : Ty1} -> (Interp (T over I) -> Interp I) -> Interp T -> Interp I
+[_] : {I : Set} -> Ty1 I -> I -> Set
+[ T ] = Fix T
+
+-- map : {T : Ty1} -> {I J : Set} -> (I -> J) -> [[ T ]] J -> [[ T ]] J
+-- map f (< t >) = < map f t >
+
+_~>_ : {I : Set} -> (I -> Set) -> (I -> Set) -> Set
+_~>_ {I} A B = {i : I} -> A i -> B i
+
+Morph : {I : Set} -> Ty1 I -> Ty1 I -> Set
+Morph {I} T B = [ T ] ~> [ B ]
+
+Alg : {I : Set} -> Ty1 I -> Ty1 I -> Set
+Alg T B = [[ T ]] [ B ] ~> [ B ]
+
+CoAlg : {I : Set} -> Ty1 I -> Ty1 I -> Set
+CoAlg T B = [ B ] ~> [[ T ]] [ B ]
+
+fold :  {I : Set} -> {T B : Ty1 I} -> (Alg T B) -> Morph T B
 fold = {!   !}
 
-unfold : {T : Ty1} -> {I : Ty1} -> (Interp I -> Interp (T over I)) -> Interp I -> Interp T
+unfold : {I : Set} -> {T B : Ty1 I} -> (CoAlg T B) -> Morph B T
 unfold = {!   !}
 
 
-record Repr (T : Ty1) : Set where
+record Repr {I : Set} (T : Ty1 I) : Set1 where
   field
-    R : Ty0
-    I : Ty1
+    R : Ty0 I
+    B : Ty1 I
 
-    wrap : Interp (T over I) -> Interp I
-    unwrap : Interp (T over I) -> Interp (T over I)
+    wrap : Alg T B
+    unwrap : CoAlg T B
 
-    build : Interp I -> Interp (quot R)
-    unbuild : Interp (quot R) -> Interp I
+    build : Morph B (^ R)
+    unbuild : Morph (^ R) (B)
 
-repr : {T : Ty1} -> {{r : Repr T}} -> Interp T -> Interp (quot Repr.R)
-repr = Repr.build . Repr.wrap
+open Repr
 
-unrepr : {T : Ty1} -> {{r : Repr T}} -> Interp (quot Repr.R) -> Interp T
-unrepr = Repr.unwrap . Repr.unbuild
+repr : {I : Set} -> {T : Ty1 I} -> {{r : Repr T}} -> Morph T (^ (R r))
+repr {{r}} = (build r) ∘ fold (wrap r)
+
+unrepr : {I : Set} -> {T : Ty1 I} -> {{r : Repr T}} -> Morph (^ (R r)) T
+unrepr {{r}} = unfold (unwrap r) ∘ (unbuild r)
 
 
 
