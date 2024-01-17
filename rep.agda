@@ -7,6 +7,7 @@ open import Relation.Binary.PropositionalEquality using (_≡_)
 
 data Ty0 (I : Set) : Set where
 
+-- We actually need a term structure here
 data Ty1 (I : Set) : Set1 where
   end : I -> Ty1 I
   σ : (S : Set) -> (S -> Ty1 I) -> Ty1 I
