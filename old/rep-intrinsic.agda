@@ -42,7 +42,8 @@ interleaved mutual
 
   weaken-ty = {!   !}
   weaken-tm = {!   !}
-  sub-ty = {!   !}
+
+  sub-ty = ?
 
   var-ty {Γ = (Γ , T)} z = weaken-ty T
   var-ty {Γ = (Γ , T)} (s v) = weaken-ty (var-ty v)
@@ -56,15 +57,21 @@ interleaved mutual
     quot : ∀ {Γ} {T : Ty 0 Γ} -> Tm T -> Tm (^ T)
     var : ∀ {Γ} (v : Var 1 Γ) -> Tm (var-ty v)
 
+  mkLam : ∀ {Γ} (T : Ty 1 Γ) {R : Ty 1 (Γ , T)} -> (Tm (weaken-ty {W = T} T) -> Tm R) -> Tm (pi T R)
+  mkLam {Γ} T {R} f = lam T (f (var z))
+
+  mkSig : ∀ {Γ} (T : Ty 1 Γ) -> (Tm (weaken-ty {W = T} T) -> Ty 1 (Γ , T)) -> Ty 1 Γ
+  mkSig {Γ} T f = sig T (f (var z))
+
   data Desc {Γ : Ctx} (I : Ty 1 Γ) : Set where
     leaf : Tm I -> Desc I
-    choice : (S : Ty 1 Γ) -> Desc {Γ = (Γ , S)} (weaken-ty I) -> Desc I
+    choice : (S : Ty 1 (Γ , I)) -> (Tm S -> Desc I) -> Desc I
     node : Tm I -> Desc I -> Desc I
 
   interp : ∀ {Γ} {I : Ty 1 Γ} -> Desc I -> Tm (pi I univ) -> Tm (pi I univ)
-  interp {Γ} {I} (leaf t) F = lam I (ty (eq (var z) (weaken-tm t)))
-  interp {Γ} {I} (choice S f) F = lam I (ty (sig (weaken-ty S) (el ({!   !}))))
-  interp {Γ} {I} (node t d) F = lam I (ty {!   !})
+  interp {Γ} {I} (leaf i') X = mkLam I (\i -> ty (eq i (weaken-tm i')))
+  interp {Γ} {I} (choice S D) X = mkLam I (\i -> ty (sig S (el (app (interp (D (var z)) X) i))))
+  interp {Γ} {I} (node i' D) X = mkLam I (\i -> ty (mkSig (weaken-ty (el (app X i'))) ({!   !})))
   -- [ choice T f ] F =
   -- [ node t d ] F =
 
