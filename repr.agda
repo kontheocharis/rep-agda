@@ -1,4 +1,4 @@
-{-# OPTIONS --large-indices #-}
+{-# OPTIONS --large-indices --no-positivity-check #-}
 open import Data.String using (String)
 open import Data.List using (List; _∷_; []; length; _++_; lookup; map; foldl)
 open import Data.Fin using (Fin; zero; suc)
@@ -55,6 +55,7 @@ interleaved mutual
   VariantIdx : SFunc -> Set
   VariantIdx F = Fin (length (SFunc.variants F))
 
+
   FieldIdx : ∀ {F} -> VariantIdx F -> Set
   FieldIdx {F} i = Fin (length (SField.ty (lookup (SFunc.variants F) i)))
 
@@ -101,18 +102,19 @@ interleaved mutual
     [] : ∀ {Γ} -> STms Γ []
     _,_ : ∀ {Γ A As} -> STm Γ A -> STms Γ As -> STms Γ (A ∷ As)
 
-  VariantTerms : ∀ {F} -> SCtx -> VariantIdx F -> STy ∅ -> Set
-  VariantTerms {F} Γ i A = STms Γ (map (λ T -> T [ A ]) (variant-tys {F} i))
-
-  variant-ctx : ∀ {F} -> SCtx -> VariantIdx F -> STy ∅ -> SCtx
-  variant-ctx {F} Γ i A = let tys = map (λ T -> T [ A ]) (variant-tys {F} i) in foldl (λ Δ T -> Δ , T) Γ tys
+  extend-ctx : SCtx -> List (STy ∅) -> SCtx
+  extend-ctx Γ [] = Γ
+  extend-ctx Γ (A ∷ As) = extend-ctx (Γ , A) As
 
   data DepVec : List Set -> Set where
     [] : DepVec []
     _,_ : ∀ {A As} -> A -> DepVec As -> DepVec (A ∷ As)
 
-  VariantElims : ∀ {F} -> SCtx -> VariantIdx F -> STy ∅ -> STy ∅ -> Set
-  VariantElims {F} Γ i A B = DepVec (map (λ T -> STm (variant-ctx {F} Γ i (T [ A ])) B) (variant-tys {F} i))
+  VariantTerms : ∀ {F} -> SCtx -> VariantIdx F -> STy ∅ -> Set
+  VariantTerms {F} Γ i A = STms Γ (map (λ T -> T [ A ]) (variant-tys {F} i))
+
+  VariantElims : SFunc -> SCtx -> STy ∅ -> STy ∅ -> Set
+  VariantElims F Γ A B = DepVec (map (λ f -> STm (extend-ctx Γ (map (λ l -> l [ A ]) (SField.ty f)))  B) (SFunc.variants F))
 
   data STm where
     lam : ∀ {Γ A B} -> STm (Γ , A) B -> STm Γ (A => B)
@@ -121,7 +123,7 @@ interleaved mutual
     v : ∀ {Γ A} -> SVar Γ -> STm Γ A
     letin : ∀ {Γ A B} -> STm Γ A -> STm (Γ , A) B -> STm Γ B
     q : ∀ {Ψ Γ} {C : LTy Ψ} -> LTm C -> STm Γ (Q C)
-    caseof : ∀ {Γ A B F} -> STm Γ (F ⦅ A ⦆) -> (δ : VariantElims Γ F A B) -> STm Γ B
+    caseof : ∀ {Γ A B F} -> STm Γ (F ⦅ A ⦆) -> (δ : VariantElims F Γ A B) -> STm Γ B
     unwrap : ∀ {Γ F} -> STm Γ (μ F) -> STm Γ (F ⦅ μ F ⦆)
     wrap : ∀ {Γ F} -> STm Γ (F ⦅ μ F ⦆) -> STm Γ (μ F)
     fold : ∀ {Γ F A} -> STm Γ ((F ⦅ A ⦆) => A) -> STm Γ ((μ F) => A)
@@ -134,11 +136,12 @@ interleaved mutual
   Prod : STy ∅ -> STy ∅ -> STy ∅
   Prod A B = μ (func "Prod" ( fld "pair" ( weaken-ty A ∷ weaken-ty B ∷ [] ) ∷ []))
 
-  -- Nat : STy ∅
-  -- Nat = μ NatF
+  NatT : STy ∅
+  NatT = μ NatF
 
-  -- add : STm ∅ (Nat => (Nat => Nat))
-  -- add = lam (fold (lam (caseof {F = NatF} (v z) ({!   !}))))
+  -- add : STm ∅ (NatT => (NatT => NatT))
+  -- add = lam (fold (lam (caseof {F = NatF} (v (s z)) ( (v z) , ( (NatF / zero) ()  , [] ) ))))
+
     -- where
     --   elim : ∀ {Γ} -> (i : VariantIdx NatF) -> STm (variant-ctx {NatF} (Γ , Nat) i Nat) Nat
     --   elim zero = {!   !}
