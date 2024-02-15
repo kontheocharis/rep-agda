@@ -2,10 +2,10 @@
 open import Data.String using (String)
 open import Data.List using (List; _∷_; []; length; _++_; lookup; map; foldl; replicate)
 open import Data.Fin using (Fin; zero; suc)
-open import Data.Product using (_×_; Σ; _,_)
+open import Data.Product using (_×_; Σ; _,_; proj₁; proj₂)
 open import Data.Bool using (Bool; true; false; if_then_else_)
 open import Data.Unit using (⊤; tt)
-open import Data.Vec using (Vec; _∷_; [])
+open import Data.Vec using (Vec; _∷_; []; lookup)
 open import Agda.Builtin.Nat using (Nat; suc; zero; _==_)
 open import Agda.Primitive
 
@@ -24,11 +24,15 @@ record Poly (S : Set) : Set where
     pos : Fin sh -> Nat
     coe : Fin sh -> S
 
+mk-poly : ∀ {S} {sh : Nat} -> Vec (S × Nat) sh -> Poly S
+mk-poly {S} {sh} xs = poly sh (λ i -> proj₂ (Data.Vec.lookup xs i)) (λ i -> proj₁ (Data.Vec.lookup xs i))
+
 data STy : Set where
   _=>_ : STy -> STy -> STy
   μ : Poly STy -> STy
   _⦅_⦆ : Poly STy -> STy -> STy
   Q : LTy -> STy
+  I : STy
 
 data SCtx : Set where
   ∅ : SCtx
@@ -52,15 +56,16 @@ extend-ctx Γ (A ∷ As) = extend-ctx (Γ , A) As
 data STm : SCtx -> STy -> Set where
   lam : ∀ {Γ A B} -> STm (Γ , A) B -> STm Γ (A => B)
   app : ∀ {Γ A B} -> STm Γ (A => B) -> STm Γ A -> STm Γ B
-  _/_ : ∀ {Γ A} -> (P : Poly STy) -> (i : Fin (Poly.sh P)) -> STm Γ (Poly.coe P i) -> Vec (STm Γ (P ⦅ A ⦆)) (Poly.pos P i) -> STm Γ (P ⦅ A ⦆)
+  _/_ : ∀ {Γ A} -> (P : Poly STy) -> (i : Fin (Poly.sh P)) -> STm Γ (Poly.coe P i) -> Vec (STm Γ A) (Poly.pos P i) -> STm Γ (P ⦅ A ⦆)
   v : ∀ {Γ A} -> SVar Γ -> STm Γ A
   letin : ∀ {Γ A B} -> STm Γ A -> STm (Γ , A) B -> STm Γ B
   q : ∀ {Γ} {C : LTy} -> LTm C -> STm Γ (Q C)
-  caseof : ∀ {Γ A B P} -> STm Γ (P ⦅ A ⦆) -> DepVec (Poly.sh P) (λ i -> STm (extend-ctx (Γ , Poly.coe P i) (replicate (Poly.pos P i) (P ⦅ A ⦆))) B) -> STm Γ B
+  caseof : ∀ {Γ A B P} -> STm Γ (P ⦅ A ⦆) -> DepVec (Poly.sh P) (λ i -> STm (extend-ctx (Γ , Poly.coe P i) (replicate (Poly.pos P i) A)) B) -> STm Γ B
   unwrap : ∀ {Γ F} -> STm Γ (μ F) -> STm Γ (F ⦅ μ F ⦆)
   wrap : ∀ {Γ F} -> STm Γ (F ⦅ μ F ⦆) -> STm Γ (μ F)
-  -- fold : ∀ {Γ F A} -> STm Γ ((F ⦅ A ⦆) => A) -> STm Γ ((μ F) => A)
-  -- unfold : ∀ {Γ F A} -> STm Γ (A => (F ⦅ A ⦆)) -> STm Γ (A => (μ F))
+  fold : ∀ {Γ F A} -> STm Γ ((F ⦅ A ⦆) => A) -> STm Γ ((μ F) => A)
+  unfold : ∀ {Γ F A} -> STm Γ (A => (F ⦅ A ⦆)) -> STm Γ (A => (μ F))
+  ⋆ : ∀ {Γ} -> STm Γ I
 
   -- data STms : SCtx -> List STy -> Set
 
@@ -82,24 +87,28 @@ data STm : SCtx -> STy -> Set where
   -- VariantElims : SFunc -> SCtx -> STy ∅ -> STy ∅ -> Set
   -- VariantElims F Γ A B = DepVec (map (λ f -> STm (extend-ctx Γ (map (λ l -> l [ A ]) (SField.ty f)))  B) (SFunc.variants F))
 
+NatF : Poly STy
+NatF = mk-poly (( I , 0 ) ∷ ( I , 1 ) ∷ [])
 
-  -- NatF : SFunc
-  -- NatF = func "Nat" ( fld "zero" [] ∷ fld "suc" ( V z ∷ [] ) ∷ [])
+NatT : STy
+NatT = μ NatF
 
-  -- Prod : STy ∅ -> STy ∅ -> STy ∅
-  -- Prod A B = μ (func "Prod" ( fld "pair" ( weaken-ty A ∷ weaken-ty B ∷ [] ) ∷ []))
+zeF : ∀ {Γ} {A : STy} -> STm Γ (NatF ⦅ A ⦆)
+zeF = (NatF / zero) ⋆ []
 
-  -- NatT : STy ∅
-  -- NatT = μ NatF
+suF : ∀ {Γ} {A : STy} -> STm Γ A -> STm Γ (NatF ⦅ A ⦆)
+suF n = (NatF / suc zero) ⋆ (n ∷ [])
 
-  -- add : STm ∅ (NatT => (NatT => NatT))
-  -- add = lam (fold (lam (caseof {F = NatF} (v (s z)) ({!   !}))))
+ze : ∀ {Γ} -> STm Γ NatT
+ze = wrap zeF
 
-    -- where
-    --   elim : ∀ {Γ} -> (i : VariantIdx NatF) -> STm (variant-ctx {NatF} (Γ , Nat) i Nat) Nat
-    --   elim zero = {!   !}
-    --   elim (suc zero) = {!   !}
+su : ∀ {Γ} -> STm Γ NatT -> STm Γ NatT
+su n = wrap (suF n)
 
+su' : ∀ {Γ} -> STm Γ (NatT => NatT)
+su' = lam (su (v z))
 
+nat-elim : ∀ {Γ B} -> STm Γ B -> STm Γ (NatT => B) -> STm Γ (NatT => B)
+nat-elim b f = lam (caseof {P = NatF} (unwrap (v z)) ({!   !} , {!   !} , tt))
 
 
