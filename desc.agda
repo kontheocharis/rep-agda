@@ -187,10 +187,49 @@ pi-iso f = ⟨ lam (λ x -> ~(f ⟨ x ⟩)) ⟩
 iso-pi : ∀ {A : Ty} -> (Code (A => A)) -> (Code A -> Code A)
 iso-pi f x = ⟨ ap (~ f) (~ x) ⟩
 
+Gen : Set -> Set
+Gen A = (R : Ty) -> (A -> Code R) -> Code R
 
-record ReprDesc {I : Set} (d : Desc I) : Set where
-  field
-    R : I -> Ty
-    compile : (⦅ d ⦆ (Code ∘ R)) ⇒ (Code ∘ R)
-    view : ∀ {i} -> (c : Code (R i)) -> μ (orn-desc (alg-orn d compile)) (i , c)
+mutual
+  data Typ (I : Set) : Set1
+  record Fn (I : Set) : Set1
+
+  Typ⦅_⦆ : ∀ {I} -> Typ I -> (I -> Set)
+
+  record Fn I where
+    inductive
+    field
+      dom : Typ I
+      cod : Typ (Σ I Typ⦅ dom ⦆)
+
+  data Typ I where
+    desc : Desc I -> Typ I
+    fn : Fn I -> Typ I
+
+  Fn⦅_⦆ : ∀ {I} -> Fn I -> (I -> Set)
+  Fn⦅ f ⦆ i = (a : Typ⦅ Fn.dom f ⦆ i) -> Typ⦅ Fn.cod f ⦆ (i , a)
+
+  Typ⦅ fn f ⦆ i = Fn⦅ f ⦆ i
+  Typ⦅ desc d ⦆ i = μ d i
+
+
+mutual
+  record ReprDesc {I : Set} (d : Desc I) : Set1
+  record ReprFn {I : Set} (d : Fn I) : Set1
+
+  data Repr {I : Set} : Typ I -> Set1 where
+    desc-repr : ∀ {d} -> ReprDesc d -> Repr (desc d)
+    fn-repr : ∀ {f} -> ReprFn f -> Repr (fn f)
+
+  record ReprFn {I} f where
+    inductive
+    field
+      dom : Repr (Fn.dom f)
+      cod : Repr (Fn.cod f)
+
+  record ReprDesc {I} d where
+    field
+      R : I -> Ty
+      compile : ∀ {i} -> ⦅ d ⦆ (Code ∘ R) i -> Code (R i)
+      view : ∀ {i} -> (c : Code (R i)) -> Gen (μ (orn-desc (alg-orn d compile)) (i , c))
 
