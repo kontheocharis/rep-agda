@@ -233,3 +233,19 @@ mutual
       compile : ∀ {i} -> ⦅ d ⦆ (Code ∘ R) i -> Code (R i)
       view : ∀ {i} -> (c : Code (R i)) -> Gen (μ (orn-desc (alg-orn d compile)) (i , c))
 
+
+Repr⦅_⦆ : ∀ {I} {t : Typ I} -> Repr t -> (I -> Set)
+Repr⦅ desc-repr d ⦆ i = Code (ReprDesc.R d i)
+Repr⦅ fn-repr f ⦆ i = Repr⦅ ReprFn.dom f ⦆ i -> Repr⦅ ReprFn.cod f ⦆ (i , {!   !})
+
+mutual
+  record ReprLam {I : Set} (F : Fn I) (RF : ReprFn F) (f : (i : I) -> (Fn⦅ F ⦆) i) : Set1
+
+  default-repr-lam : ∀ {I} {F : Fn I} {RF : ReprFn F} (f : (i : I) -> (Fn⦅ F ⦆) i) -> ((i : I) -> Repr⦅ fn-repr RF ⦆ i)
+  default-repr-lam f i d = {!   !}
+
+  record ReprLam {I} F RF f where
+    field
+      f' : (i : I) -> Repr⦅ fn-repr RF ⦆ i
+      coh : ∀ {i} -> f' i ≡ default-repr-lam f i
+
