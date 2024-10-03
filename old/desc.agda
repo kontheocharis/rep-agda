@@ -5,6 +5,12 @@ open import Agda.Builtin.Equality
 open import Data.Product using (_×_; _,_; Σ)
 open import Agda.Builtin.Sigma using (fst; snd)
 open import Function.Base using (_∘_)
+open import Data.List using (List; _∷_; [])
+open import Data.Nat using (ℕ; zero; suc; _+_; _<?_; _≥_; s≤s⁻¹)
+open import Data.Nat.Properties using (≰⇒>)
+open import Data.Fin using (Fin; zero; suc; toℕ; fromℕ; fromℕ<; splitAt)
+open import Relation.Nullary using (yes; no)
+open import Data.Sum using (_⊎_; inj₁; inj₂; [_,_])
 
 data Desc (I : Set) : Set1 where
   one : I -> Desc I
@@ -249,3 +255,45 @@ mutual
       f' : (i : I) -> Repr⦅ fn-repr RF ⦆ i
       coh : ∀ {i} -> f' i ≡ default-repr-lam f i
 
+
+-- -- U stands for useless
+-- data CasesU :
+
+data PatF {I : Set} (X : ℕ -> Set1) : Desc I -> ℕ -> Set1 where
+  p-σ : ∀ {S φ fv} -> (s : S) -> PatF X (φ s) fv -> PatF X (σ S φ) fv
+  p-rec : ∀ {fv} -> (i : I) -> X fv -> PatF X (var i) fv
+  p-* : ∀ {d d' fv fv'} -> PatF X d fv -> PatF X d' fv' -> PatF X (d * d') (fv + fv')
+  p-end : (i : I) -> PatF X (one i) 0
+  p-wild : (d : Desc I) -> PatF X d 0
+  p-bind : (d : Desc I) -> PatF X d 1
+
+bind-type : ∀ {I X n} {d : Desc I} -> PatF X d n -> Fin n -> Desc I
+bind-type (p-σ s p) m = bind-type p m
+bind-type (p-rec i x) m = var i
+bind-type (p-* {fv = fv} p p') m = [ bind-type p , bind-type p' ] (splitAt fv m)
+bind-type (p-end i) _ = one i
+bind-type (p-wild d) _ = d
+bind-type (p-bind d) _ = d
+
+data Pat {I : Set} (d : Desc I) : ℕ -> Set1 where
+  P⟨_⟩ : ∀ {n} -> PatF (Pat d) d n -> Pat d n
+
+Punfix : ∀ {I} {d : Desc I} {n} -> Pat d n -> PatF (Pat d) d n
+Punfix (P⟨ p ⟩) = p
+
+record Case {I : Set} (d : Desc I) (E : ∀ {i} -> μ d i -> Set) : Set1 where
+  field
+    fv : ℕ
+    pat : Pat d fv
+    ret : (F : (m : Fin fv) -> ∀ {i} -> μ (bind-type (Punfix pat) m) i) -> E ()
+
+-- p-⦅_⦆ : ∀ {I} -> {B : I -> Set} {d : Desc I} {i : I} -> Pat B d i -> B i -> μ d i
+-- p-⦅ a ⦆ = {!   !}
+
+-- data p-μ {I : Set} (X : I -> Set) (FV : Set) (d : Desc I) {i : I} (p : Pat d i) : I -> Set where
+-- -- data μ {I : Set} (d : Desc I) : I -> Set where
+--   p-⟨_⟩ : {i : I} -> p-⦅ p ⦆ (p-μ p) i -> p-μ p i
+--   -- ⟨_⟩ : {i : I} -> ⦅ d ⦆ (μ d) i -> μ d i
+
+-- Cases : ∀ {I} -> (d : Desc I) -> (∀ {i} -> μ d i -> Set) -> Set1
+-- Cases d E = List (Case d E)
