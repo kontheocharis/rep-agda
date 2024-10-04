@@ -44,6 +44,8 @@ data Tel where
 Γ ++ ∅ = ∅
 Γ ++ (Δ , A) = Γ ++ Δ , A
 
+_Tel++_ : ∀ {Σ} {Γ : Ctx Σ} {A : Tel Γ} -> (A : Tel Γ) -> Tel (Γ ++ A) -> Tel Γ
+
 data Tms {Σ} (Γ : Ctx Σ) :  Tel Γ -> Set where
   ∅ : Tms Γ ∅
   _,_ : ∀ {Δ : Tel Γ} {T : Ty (Γ ++ Δ)} -> (ts : Tms Γ Δ) -> (t : Tm (Γ ++ Δ) T) -> Tms Γ (Δ , T)
@@ -85,6 +87,8 @@ data Ctors {Σ} D where
 
 ^Tel : ∀ {Σ I} {Γ : Ctx Σ} -> Tel {Σ} Γ -> Tel {Σ , I} (^Ctx Γ)
 
+~~Ty : ∀ {Σ} {Γ : Ctx Σ} {A : Tel Γ} -> Ty Γ -> Ty (Γ ++ A)
+
 ~~Tel : ∀ {Σ} {Γ : Ctx Σ} {A : Tel Γ} -> Tel Γ -> Tel (Γ ++ A)
 
 hoist-tel : ∀ {Σ} {Γ : Ctx Σ} -> Tel {Σ} ∅ -> Tel Γ
@@ -93,7 +97,15 @@ hoist-tel' : ∀ {Σ} {Γ : Ctx Σ} {A : Tel {Σ} ∅} -> Tel (∅ ++ A) -> Tel 
 
 _Ty[_] : ∀ {Σ} {Γ : Ctx Σ} {A : Ty Γ} -> Ty (Γ , A) -> Tm Γ A -> Ty Γ
 
+_Ty⟦_⟧ : ∀ {Σ} {Γ : Ctx Σ} {A : Tel Γ} -> Ty (Γ ++ A) -> Tms Γ A -> Ty Γ
+
 _Tel[_] : ∀ {Σ} {Γ : Ctx Σ} {A : Tel Γ} -> Tel (Γ ++ A) -> Tms Γ A -> Tel Γ
+
+_Tel⟦_⟧ : ∀ {Σ} {Γ : Ctx Σ} {A : Tel Γ} -> Tel (Γ ++ A) -> Tms Γ A -> Tel Γ
+
+_Tm⟦_⟧ : ∀ {Σ} {Γ : Ctx Σ} {A : Tel Γ} {B : Ty (Γ ++ A)} -> Tm (Γ ++ A) B -> (a : Tms Γ A) -> Tm Γ (B Ty⟦ a ⟧)
+
+_Tms[_] : ∀ {Σ} {Γ : Ctx Σ} {A : Tel Γ} {B : Tel (Γ ++ A)} -> Tms (Γ ++ A) B -> (a : Tms Γ A) -> Tms Γ (B Tel[ a ])
 
 data ItemIn where
   here : ∀ {Σ}  -> (I : Item Σ) -> ItemIn (Σ , I) (^Item I)
@@ -104,8 +116,8 @@ record Ctor {Σ} D cs where
   constructor ctor-item
   field
     k : Name
-    Δₖ : Tel (∅ ++ Dat.Δₚ D)
-    iₖ : Tms (∅ ++ Dat.Δₚ D) (Dat.Δᵢ D)
+    Δₖ : {Γ : Ctx Σ} -> Tms Γ (hoist-tel (Dat.Δₚ D)) -> Tel Γ
+    iₖ : {Γ : Ctx Σ} -> (pp : Tms Γ (hoist-tel (Dat.Δₚ D))) -> Tms (Γ ++ Δₖ pp) (hoist-tel ((Dat.Δᵢ D) Tel⟦ pp ⟧))
 
 -- Locating items in contexts
 
@@ -113,6 +125,8 @@ data CtorIn {Σ : Sig} {D : Dat Σ} : (cs : Ctors D) -> Ctor D cs -> Set
   -- here : ∀ {Σ} {D : Dat Σ} {cs : Ctors D} -> (c : Ctor D cs) -> CtorIn (cs , c)
 
 Πs : ∀ {Σ} {Γ : Ctx Σ} -> (A : Tel Γ) -> Ty (Γ ++ A) -> Ty Γ
+
+apps : ∀ {Σ : Sig} {Γ : Ctx Σ} {A : Tel Γ} {B : Ty (Γ ++ A)} -> Tm Γ (Πs A B) -> Tm (Γ ++ A) B
 
 data Var : ∀ {Σ} -> (Γ : Ctx Σ) -> Ty Γ -> Set where
   z : ∀ {Σ} {Γ : Ctx Σ} {A : Ty Γ} -> Var Γ A
@@ -123,14 +137,24 @@ data Ty where
   U : ∀ {Σ : Sig} {Γ : Ctx Σ} -> Ty Γ
   El : ∀ {Σ : Sig} {Γ : Ctx Σ} -> Tm {Σ} Γ U -> Ty Γ
 
+~~Ty U = U
+
+U Ty⟦ _ ⟧ = U
+
 data Tm where
   lam : ∀ {Σ : Sig} {Γ : Ctx Σ} {A : Ty Γ} {B : Ty (Γ , A)} -> Tm (Γ , A) B -> Tm Γ (Π A B)
   app : ∀ {Σ : Sig} {Γ : Ctx Σ} {A : Ty Γ} {B : Ty (Γ , A)} -> Tm Γ (Π A B) -> Tm (Γ , A) B
   var : ∀ {Σ : Sig} {Γ : Ctx Σ} {T : Ty Γ} -> (x : Var Γ T) -> Tm Γ T
   ^_ : ∀ {Σ : Sig} {Γ : Ctx Σ} -> Ty Γ -> Tm Γ U
-  dat : ∀ {Σ} {Γ : Ctx Σ} {D : Dat Σ} -> ItemIn Σ (dat D) -> Tms Γ (hoist-tel (Dat.Δₚ D)) -> Tm Γ U
+  -- dat : ∀ {Σ} {Γ : Ctx Σ} {D : Dat Σ} -> ItemIn Σ (dat D) -> Tms Γ (hoist-tel (Dat.Δₚ D)) -> Tm Γ U
+  dat : ∀ {Σ} {Γ : Ctx Σ} {D : Dat Σ} -> ItemIn Σ (dat D) -> Tm Γ (Πs (hoist-tel (Dat.Δₚ D)) (Πs (hoist-tel' (Dat.Δᵢ D)) U))
+  -- ctor : ∀ {Σ : Sig} {Γ : Ctx Σ} {A : Ty Γ} {D : Dat Σ} {cs : Ctors D} {c : Ctor D cs}
+  --   -> (D' : ItemIn Σ (dat D)) -> CtorIn cs c
+  --   -> (pp : Tms Γ (hoist-tel (Dat.Δₚ D)))
+  --   -> (sp : Tms Γ ((hoist-tel' (Ctor.Δₖ c)) Tel[ pp ]))
+  --   -> Tm Γ (El (dat D' pp))
   ctor : ∀ {Σ : Sig} {Γ : Ctx Σ} {A : Ty Γ} {D : Dat Σ} {cs : Ctors D} {c : Ctor D cs}
     -> (D' : ItemIn Σ (dat D)) -> CtorIn cs c
     -> (pp : Tms Γ (hoist-tel (Dat.Δₚ D)))
-    -> (sp : Tms Γ ((hoist-tel' (Ctor.Δₖ c)) Tel[ pp ]))
-    -> Tm Γ (El (dat D' pp))
+    -> Tm Γ (Πs ((hoist-tel' (Ctor.Δₖ c)) Tel⟦ pp ⟧) (El ((apps ((apps (dat D')) Tm⟦ pp ⟧ )) Tm⟦ ? ⟧)))
+    -- -> Tm Γ (Πs (hoist-tel (Dat.Δₚ D)) (Πs ((hoist-tel' (Ctor.Δₖ c)) (El (dat D' pp))))
