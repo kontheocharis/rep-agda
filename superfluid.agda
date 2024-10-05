@@ -138,29 +138,42 @@ data Var : ∀ {Σ} -> (Γ : Ctx Σ) -> Ty Γ -> Set where
   z : ∀ {Σ} {Γ : Ctx Σ} {A : Ty Γ} -> Var Γ A
   s : ∀ {Σ} {Γ : Ctx Σ} {A B : Ty Γ} -> Var Γ A -> Var (Γ , B) (~Ty A)
 
+weaken-ty : ∀ {Σ} {Γ : Ctx Σ} {A B : Tel Γ}
+  -> Ty (Γ ++ A)
+  -> Ty ((Γ ++ B) ++ ~~Tel A)
+
+-- Helper function to hoist a substitution
+hoist-subst : ∀ {Σ} {Γ : Ctx Σ} {D : Tel {Σ} ∅} {A B : Tel (∅ ++ D)}
+  -> Tms ((∅ ++ D) ++ B) (~~Tel A)
+  -> Tms ((Γ ++ hoist-tel D) ++ hoist-tel' B) (~~Tel (hoist-tel' A))
+
+hoist-tel'' : ∀ {Σ} {Γ : Ctx Σ} {D : Tel {Σ} ∅} {B : Tel (∅ ++ D)}
+  -> Tel ((∅ ++ D) ++ B)
+  -> Tel (((Γ ++ hoist-tel D) ++ hoist-tel' B))
+
+-- Helper function similar to hoist-tel', but for double weakening
+hoist-tel''' : ∀ {Σ} {Γ : Ctx Σ} {D : Tel {Σ} ∅} {B : Tel (∅ ++ D)} {A : Tel ((∅ ++ D) ++ B)}
+  -> Tel (((∅ ++ D) ++ B) ++ A)
+  -> Tel (((Γ ++ hoist-tel D) ++ hoist-tel' B) ++ hoist-tel'' A)
+
+
+apps-weak : ∀ {Σ} {Γ : Ctx Σ} {D : Tel {Σ} ∅} {A : Tel (∅ ++ D)} {B : Tel (∅ ++ D)}
+  -> (T : Ty ((Γ ++ hoist-tel D) ++ hoist-tel' A))
+  -> (δ : Tms ((∅ ++ D) ++ B) (~~Tel A))
+  -> Ty ((Γ ++ hoist-tel D) ++ hoist-tel' B)
+apps-weak {Σ} {Γ} {D} {A} {B} T δ = (weaken-ty T) Ty⟦ hoist-subst δ ⟧
+
 data Ty where
   Π : ∀ {Σ : Sig} {Γ : Ctx Σ} -> (A : Ty Γ) -> (B : Ty (Γ , A)) -> Ty Γ
   U : ∀ {Σ : Sig} {Γ : Ctx Σ} -> Ty Γ
   El : ∀ {Σ : Sig} {Γ : Ctx Σ} -> Tm {Σ} Γ U -> Ty Γ
   dat : ∀ {Σ} {Γ : Ctx Σ} {D : Dat Σ} -> ItemIn Σ (dat D) -> Ty ((Γ ++ (hoist-tel (Dat.Δₚ D))) ++ hoist-tel' (Dat.Δᵢ D))
 
-apps-weak : ∀ {Σ} {Γ : Ctx Σ} {D : Tel {Σ} ∅} {A : Tel (∅ ++ D)} {B : Tel (∅ ++ D)}
-  -> Ty ((Γ ++ hoist-tel D) ++ hoist-tel' A)
-  -> Tms ((∅ ++ D) ++ B) (~~Tel A)
-  -> Ty ((Γ ++ hoist-tel D) ++ hoist-tel' B)
-
 data Tm where
   lam : ∀ {Σ : Sig} {Γ : Ctx Σ} {A : Ty Γ} {B : Ty (Γ , A)} -> Tm (Γ , A) B -> Tm Γ (Π A B)
   app : ∀ {Σ : Sig} {Γ : Ctx Σ} {A : Ty Γ} {B : Ty (Γ , A)} -> Tm Γ (Π A B) -> Tm (Γ , A) B
   var : ∀ {Σ : Sig} {Γ : Ctx Σ} {T : Ty Γ} -> (x : Var Γ T) -> Tm Γ T
   ^_ : ∀ {Σ : Sig} {Γ : Ctx Σ} -> Ty Γ -> Tm Γ U
-  -- dat : ∀ {Σ} {Γ : Ctx Σ} {D : Dat Σ} -> ItemIn Σ (dat D) -> Tms Γ (hoist-tel (Dat.Δₚ D)) -> Tm Γ U
-  -- ctor : ∀ {Σ : Sig} {Γ : Ctx Σ} {A : Ty Γ} {D : Dat Σ} {cs : Ctors D} {c : Ctor D cs}
-  --   -> (D' : ItemIn Σ (dat D)) -> CtorIn cs c
-  --   -> (pp : Tms Γ (hoist-tel (Dat.Δₚ D)))
-  --   -> (sp : Tms Γ ((hoist-tel' (Ctor.Δₖ c)) Tel[ pp ]))
-  --   -> Tm Γ (El (dat D' pp))
   ctor : ∀ {Σ : Sig} {Γ : Ctx Σ} {A : Ty Γ} {D : Dat Σ} {cs : Ctors D} {c : Ctor D cs}
     -> (D' : ItemIn Σ (dat D)) -> CtorIn cs c
     -> Tm ((Γ ++ (hoist-tel (Dat.Δₚ D))) ++ (hoist-tel' (Ctor.Δₖ c))) (apps-weak (dat D') (Ctor.iₖ c))
-    -- -> Tm Γ (Πs (hoist-tel (Dat.Δₚ D)) (Πs ((hoist-tel' (Ctor.Δₖ c)) (El (dat D' pp))))
