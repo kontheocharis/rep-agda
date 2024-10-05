@@ -91,9 +91,15 @@ data Ctors {Σ} D where
 
 ~~Tel : ∀ {Σ} {Γ : Ctx Σ} {A : Tel Γ} -> Tel Γ -> Tel (Γ ++ A)
 
+hoist-ty : ∀ {Σ} {Γ : Ctx Σ} -> Ty {Σ} ∅ -> Ty Γ
+
+hoist-ty' : ∀ {Σ} {Γ : Ctx Σ} {A : Tel {Σ} ∅} -> Ty {Σ} (∅ ++ A) -> Ty Γ
+
 hoist-tel : ∀ {Σ} {Γ : Ctx Σ} -> Tel {Σ} ∅ -> Tel Γ
+hoist-tel {Γ = ∅} Δ = Δ
 
 hoist-tel' : ∀ {Σ} {Γ : Ctx Σ} {A : Tel {Σ} ∅} -> Tel (∅ ++ A) -> Tel (Γ ++ hoist-tel A)
+hoist-tel' {Γ = ∅} Δ = Δ
 
 _Ty[_] : ∀ {Σ} {Γ : Ctx Σ} {A : Ty Γ} -> Ty (Γ , A) -> Tm Γ A -> Ty Γ
 
@@ -116,8 +122,8 @@ record Ctor {Σ} D cs where
   constructor ctor-item
   field
     k : Name
-    Δₖ : {Γ : Ctx Σ} -> Tms Γ (hoist-tel (Dat.Δₚ D)) -> Tel Γ
-    iₖ : {Γ : Ctx Σ} -> (pp : Tms Γ (hoist-tel (Dat.Δₚ D))) -> Tms (Γ ++ Δₖ pp) (hoist-tel ((Dat.Δᵢ D) Tel⟦ pp ⟧))
+    Δₖ : Tel (∅ ++ (Dat.Δₚ D))
+    iₖ : Tms ((∅ ++ (Dat.Δₚ D)) ++ Δₖ) (~~Tel (Dat.Δᵢ D))
 
 -- Locating items in contexts
 
@@ -136,10 +142,12 @@ data Ty where
   Π : ∀ {Σ : Sig} {Γ : Ctx Σ} -> (A : Ty Γ) -> (B : Ty (Γ , A)) -> Ty Γ
   U : ∀ {Σ : Sig} {Γ : Ctx Σ} -> Ty Γ
   El : ∀ {Σ : Sig} {Γ : Ctx Σ} -> Tm {Σ} Γ U -> Ty Γ
+  dat : ∀ {Σ} {Γ : Ctx Σ} {D : Dat Σ} -> ItemIn Σ (dat D) -> Ty ((Γ ++ (hoist-tel (Dat.Δₚ D))) ++ hoist-tel' (Dat.Δᵢ D))
 
-~~Ty U = U
-
-U Ty⟦ _ ⟧ = U
+apps-weak : ∀ {Σ} {Γ : Ctx Σ} {D : Tel {Σ} ∅} {A : Tel (∅ ++ D)} {B : Tel (∅ ++ D)}
+  -> Ty ((Γ ++ hoist-tel D) ++ hoist-tel' A)
+  -> Tms ((∅ ++ D) ++ B) (~~Tel A)
+  -> Ty ((Γ ++ hoist-tel D) ++ hoist-tel' B)
 
 data Tm where
   lam : ∀ {Σ : Sig} {Γ : Ctx Σ} {A : Ty Γ} {B : Ty (Γ , A)} -> Tm (Γ , A) B -> Tm Γ (Π A B)
@@ -147,7 +155,6 @@ data Tm where
   var : ∀ {Σ : Sig} {Γ : Ctx Σ} {T : Ty Γ} -> (x : Var Γ T) -> Tm Γ T
   ^_ : ∀ {Σ : Sig} {Γ : Ctx Σ} -> Ty Γ -> Tm Γ U
   -- dat : ∀ {Σ} {Γ : Ctx Σ} {D : Dat Σ} -> ItemIn Σ (dat D) -> Tms Γ (hoist-tel (Dat.Δₚ D)) -> Tm Γ U
-  dat : ∀ {Σ} {Γ : Ctx Σ} {D : Dat Σ} -> ItemIn Σ (dat D) -> Tm Γ (Πs (hoist-tel (Dat.Δₚ D)) (Πs (hoist-tel' (Dat.Δᵢ D)) U))
   -- ctor : ∀ {Σ : Sig} {Γ : Ctx Σ} {A : Ty Γ} {D : Dat Σ} {cs : Ctors D} {c : Ctor D cs}
   --   -> (D' : ItemIn Σ (dat D)) -> CtorIn cs c
   --   -> (pp : Tms Γ (hoist-tel (Dat.Δₚ D)))
@@ -155,6 +162,5 @@ data Tm where
   --   -> Tm Γ (El (dat D' pp))
   ctor : ∀ {Σ : Sig} {Γ : Ctx Σ} {A : Ty Γ} {D : Dat Σ} {cs : Ctors D} {c : Ctor D cs}
     -> (D' : ItemIn Σ (dat D)) -> CtorIn cs c
-    -> (pp : Tms Γ (hoist-tel (Dat.Δₚ D)))
-    -> Tm Γ (Πs ((hoist-tel' (Ctor.Δₖ c)) Tel⟦ pp ⟧) (El ((apps ((apps (dat D')) Tm⟦ pp ⟧ )) Tm⟦ ? ⟧)))
+    -> Tm ((Γ ++ (hoist-tel (Dat.Δₚ D))) ++ (hoist-tel' (Ctor.Δₖ c))) (apps-weak (dat D') (Ctor.iₖ c))
     -- -> Tm Γ (Πs (hoist-tel (Dat.Δₚ D)) (Πs ((hoist-tel' (Ctor.Δₖ c)) (El (dat D' pp))))
