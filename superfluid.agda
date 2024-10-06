@@ -50,11 +50,9 @@ sig^ctx : ∀ {Σ} {I : Item Σ} -> Ctx Σ -> Ctx (Σ , I)
 sig^ty : ∀ {Σ} {I : Item Σ} {Γ : Ctx Σ} -> Ty Γ -> Ty (sig^ctx {I = I} Γ)
 sig^item : ∀ {Σ} {I : Item Σ} -> Item Σ -> Item (Σ , I)
 sig^tel : ∀ {Σ} {I : Item Σ} {Γ : Ctx Σ} -> Tel {Σ} Γ -> Tel {Σ , I} (sig^ctx {I = I} Γ)
-
 ^*tel : ∀ {Σ} {Γ : Ctx Σ} {Γ' : Ctx Σ} -> Tel Γ -> Tel (Γ * Γ')
 ^ty* : ∀ {Σ} {Γ : Ctx Σ} {Γ' : Ctx Σ} -> Ty Γ -> Ty (Γ * Γ')
 ^*ty : ∀ {Σ} {Γ : Ctx Σ} {Γ' : Ctx Σ} -> Ty Γ -> Ty (Γ' * Γ)
-
 ^tm* : ∀ {Σ} {Γ : Ctx Σ} {Γ' : Ctx Σ} {T : Ty Γ} -> Tm Γ T -> Tm (Γ * Γ') (^ty* T)
 
 -- Now we can define some operations on contexts and telescopes
@@ -123,7 +121,7 @@ record CanSubst
 
     ↑_ : ∀ {Σ} {Γ : Ctx Σ} {A : ETy Γ} -> RTy ∅ -> RTy Γ
 
-    ↑²++_ : ∀ {Σ} {Γ : Ctx Σ} {A : ETy Γ} -> RTy (ext ∅ A) -> RTy (ext Γ (↑ A))
+    ↑++_ : ∀ {Σ} {Γ : Ctx Σ} {A : ETy ∅} -> RTy (ext ∅ A) -> RTy (ext Γ (↑ A))
 
 open CanSubst {{...}} public
 
@@ -133,14 +131,14 @@ instance
   ty-can-subst-tel : CanSubst {ETy = Tel} {ETm = Tms} {ext = _++_} Ty
   tel-can-subst-tel : CanSubst {ETy = Tel} {ETm = Tms} {ext = _++_} Tel
 
-record CanSubstDisp
+record CanSubstᴰ
   {ETy : ∀ {Σ} -> Ctx Σ -> Set}
   {ETm : ∀ {Σ} (Γ : Ctx Σ) -> ETy Γ -> Set}
   {ext : ∀ {Σ} (Γ : Ctx Σ) -> ETy Γ -> Ctx Σ}
   {RTy : ∀ {Σ} -> Ctx Σ -> Set}
   {{_ : CanSubst {ETy} {ETm} {ext} RTy}}
   (RTm : ∀ {Σ} (Γ : Ctx Σ) -> RTy Γ -> Set) : Set where
-  constructor can-subst-disp
+  constructor can-substᴰ
   field
     _[_]ᴰ : ∀ {Σ} {Γ : Ctx Σ} {A : ETy Γ} {T : RTy (ext Γ A)}
       -> RTm (ext Γ A) T
@@ -148,13 +146,13 @@ record CanSubstDisp
       -> RTm Γ (T [ a ])
     ^ᴰ_ : ∀ {Σ} {Γ : Ctx Σ} {A : ETy Γ} {T : RTy Γ} -> RTm Γ T -> RTm (ext Γ A) (^ T)
 
-open CanSubstDisp {{...}} public
+open CanSubstᴰ {{...}} public
 
 instance
-  tm-can-subst-disp-ty : CanSubstDisp {ETy = Ty} {ETm = Tm} {ext = _,_} Tm
-  tms-can-subst-disp-ty : CanSubstDisp {ETy = Ty} {ETm = Tm} {ext = _,_} Tms
-  tm-can-subst-disp-tel : CanSubstDisp {ETy = Tel} {ETm = Tms} {ext = _++_} Tm
-  tms-can-subst-disp-tel : CanSubstDisp {ETy = Tel} {ETm = Tms} {ext = _++_} Tms
+  tm-can-subst-disp-ty : CanSubstᴰ {ETy = Ty} {ETm = Tm} {ext = _,_} Tm
+  tms-can-subst-disp-ty : CanSubstᴰ {ETy = Ty} {ETm = Tm} {ext = _,_} Tms
+  tm-can-subst-disp-tel : CanSubstᴰ {ETy = Tel} {ETm = Tms} {ext = _++_} Tm
+  tms-can-subst-disp-tel : CanSubstᴰ {ETy = Tel} {ETm = Tms} {ext = _++_} Tms
 
 data ItemIn where
   here : ∀ {Σ}  -> (I : Item Σ) -> ItemIn (Σ , I) (sig^item I)
