@@ -70,9 +70,9 @@ _,,_ {Δ = ext A Δ} (a , δ) v = (a , δ ,, v)
 -- tail {Δ = ∙} v = v
 -- tail {Δ = ext A Δ} (a , v) = tail {Δ = Δ a} v
 
--- split : ∀ {Δ Δ'} → Spine (extN Δ Δ') → Pair (Spine Δ) (λ δ → Spine (Δ' δ))
--- split {Δ = ∙} v = [] , v
--- split {Δ = ext A Δ} (a , v) = let (v' , v'') = split v in ((a , v') , v'')
+split : ∀ {Δ Δ'} → Spine (extN Δ Δ') → Pair (Spine Δ) (λ δ → Spine (Δ' δ))
+split {Δ = ∙} v = [] , v
+split {Δ = ext A Δ} (a , v) = let (v' , v'') = split v in ((a , v') , v'')
   
 data Sig where
   ε : Sig Δ
@@ -98,10 +98,14 @@ dispOutput : ∀ {Y} → {O : Op Δ} → Spine (dispInput {X = X} O Y) → Spine
 Sec : (Y : Spine Δ → Ty) → Set
 coh : {S : Sig Δ} → {α : Spine (alg S X)} → Spine (dispAlg α Y) → Sec Y → Tel
 _$_ : {Y : Spine (δ ∷ Δ , _ ∶ X δ , ∙) → Ty} → Sec Y → Spine (input O X) → Spine (dispInput O Y)
+
+ind : {S : Sig Δ} → (α : Spine (alg S X)) → Ty
+indAlg : (S : Sig Δ) → Tel
   
 {-# NO_POSITIVITY_CHECK #-}
 data Ty where
   U : Ty
+  ⊤ : Ty
   El : Tm U → Ty
   Π : (A : Ty) → (Tm A → Ty) → Ty
   Σ : (A : Ty) → (Tm A → Ty) → Ty
@@ -110,22 +114,25 @@ data Ty where
 syntax Π A (λ x → B) = [ x ∶ A ] ⇒ B
 syntax Σ A (λ x → B) = [ x ∶ A ] × B
 
+_⇒_ : Ty → Ty → Ty
+A ⇒ B = [ x ∶ A ] ⇒ B
+
 Πs : (Δ : Tel) → (Spine Δ → Ty) → Ty
 Πs ∙ t = t []
 Πs (ext A Δ) t = [ a ∶ A ] ⇒ Πs (Δ a) (λ δ → t (a , δ))
 
-Σs : (Δ : Tel) → (Spine Δ → Ty) → Ty
-Σs ∙ t = t []
-Σs (ext A Δ) t = [ a ∶ A ] × Σs (Δ a) (λ δ → t (a , δ))
+Σs : Tel → Ty
+Σs ∙ = ⊤
+Σs (ext A Δ) = Σ A (λ a → Σs (Δ a))
 
 syntax Πs Δ (λ δ → B) = [ δ ∷ Δ ] ⇒ B
-syntax Σs Δ (λ δ → B) = [ δ ∷ Δ ] × B
 
 data Tm where
   lam : ((a : Tm A) → Tm (B a)) → Tm (Π A B)
   app : Tm (Π A B) → (a : Tm A) → Tm (B a)
   pair : (a : Tm A) → Tm (B a) → Tm (Σ A B)
   fst : Tm (Σ A B) → Tm A
+  tt : Tm ⊤
   snd : (p : Tm (Σ A B)) → Tm (B (fst p))
   refl : {a : Tm A} → Tm (Id a a)
   J : (P : (a : Tm A) → (b : Tm A) → Tm (Id a b) → Ty)
@@ -177,3 +184,10 @@ metaCoeTm refl t = t
 coh {S = ε} [] σ = ∙
 coh {X = X} {S = (O ◁ S)} {α = αO , α} (βO , β) σ =
   _ ∶ [ v ∷ input O X ] ⇒ Id (σ (output v ,, (apps αO v , []))) (metaCoeTm (dispOutputId σ O v αO) (apps βO (σ $ v))) , coh β σ
+  
+ind {Δ = Δ} {X = X} {S} α =
+  [ Y ∶ [ _ ∷ (δ ∷ Δ , _ ∶ X δ , ∙) ] ⇒ U ]
+  ⇒ [ β ∷ dispAlg α (λ δx → El (apps Y δx)) ]
+  ⇒ Σs (σ ∶ [ δx ∷ (δ ∷ Δ , _ ∶ X δ , ∙) ] ⇒ El (apps Y δx) , coh β (apps σ))
+  
+indAlg {Δ = Δ} S = (X ∶ [ δ ∷ Δ ] ⇒ U , α ∷ alg S (λ δ → El (apps X δ)) , κ ∶ ind α , ∙)
