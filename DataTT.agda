@@ -126,6 +126,7 @@ data Ty where
   Σ : (A : Ty) → (Tm A → Ty) → Ty
   Id : {A : Ty} → Tm A → Tm A → Ty
   Data : (S : Sig Δ) → Spine (indAlg S) → Spine Δ → Ty
+  Repr : Ty → Ty
   
 syntax Π A (λ x → B) = [ x ∶ A ] ⇒ B
 syntax Σ A (λ x → B) = [ x ∶ A ] × B
@@ -162,6 +163,9 @@ data Tm where
   elim : ∀ {γ} → (M : Spine (Δ ▷ Data S γ) → Ty)
     → (β : Spine (dispAlg (ctors S γ) M))
     → (δx : Spine (Δ ▷ Data S γ)) → Tm (M δx)
+
+  repr : ∀ {A} → Tm A → Tm (Repr A)
+  unrepr : ∀ {A} → Tm (Repr A) → Tm A
     
 apps : Tm (Πs Δ Y) → (δ : Spine Δ) → Tm (Y δ)
 apps {Δ = ∙} t [] = t
@@ -200,19 +204,21 @@ _$_ {O = Π A O'} σ (a , v) = (a , σ $ v)
 _$_ {O = Πι δ O'} σ (x , v) = (x , σ (δ ⨾ x) , σ $ v)
 _$_ {O = ι δ} σ [] = []
 
-dispOutputId : ∀ {X : Spine Δ → Ty} {Y : Spine (Δ ▷ X) → Ty}
+secProducesDispOutput : ∀ {X : Spine Δ → Ty} {Y : Spine (Δ ▷ X) → Ty}
     → (σ : Sec Y) → (O : Op Δ) → (v : Spine (input O X)) → (αO : Tm ([ ν ∷ input O X ] ⇒ X (output ν)))
     → Y (dispOutput (σ $ v) (αO , [])) ≡ Y (output v ⨾ apps αO v)
-dispOutputId σ (Π A O') (a , v) αO = dispOutputId σ (O' a) v (app αO a)
-dispOutputId σ (Πι δ O') (x , v) αO = dispOutputId σ O' v (app αO x)
-dispOutputId σ (ι δ) [] αO = refl
+secProducesDispOutput σ (Π A O') (a , v) αO = secProducesDispOutput σ (O' a) v (app αO a)
+secProducesDispOutput σ (Πι δ O') (x , v) αO = secProducesDispOutput σ O' v (app αO x)
+secProducesDispOutput σ (ι δ) [] αO = refl
 
 metaCoeTm : A ≡ A' → Tm A → Tm A'
 metaCoeTm refl t = t
 
 coh {S = ε} [] σ = ∙
 coh {X = X} {S = (O ◁ S)} {α = αO , α} (βO , β) σ =
-  _ ∶ [ v ∷ input O X ] ⇒ Id (σ (output v ⨾ apps αO v)) (metaCoeTm (dispOutputId σ O v αO) (apps βO (σ $ v))) , coh β σ
+  _ ∶ [ v ∷ input O X ]
+    ⇒ Id (σ (output v ⨾ apps αO v)) (metaCoeTm (secProducesDispOutput σ O v αO) (apps βO (σ $ v)))
+  , coh β σ
   
 ind {Δ = Δ} {X = X} {S} α =
   [ Y ∶ [ _ ∷ Δ ▷ X ] ⇒ U ]
