@@ -62,6 +62,13 @@ _,,_ : ∀ {Δ'} → (δ : Spine Δ) → Spine (Δ' δ) → Spine (extN Δ Δ')
 _,,_ {Δ = ∙} [] v = v
 _,,_ {Δ = ext A Δ} (a , δ) v = (a , δ ,, v)
 
+_▷_ : (Δ : Tel) → (Spine Δ → Ty) → Tel
+Δ ▷ X = δ ∷ Δ , _ ∶ X δ , ∙
+
+_⨾_ : (δ : Spine Δ) → Tm (X δ) → Spine (Δ ▷ X)
+δ ⨾ t = δ ,, (t , [])
+
+
 -- init : ∀ {Δ Δ'} → Spine (extN Δ Δ') → Spine Δ
 -- init {Δ = ∙} v = []
 -- init {Δ = ext A Δ} (a , v) = a , init v
@@ -91,13 +98,13 @@ alg : (S : Sig Δ) → (Spine Δ → Ty) → Tel
 input : (O : Op Δ) → (Spine Δ → Ty) → Tel
 output : {O : Op Δ} → Spine (input O X) → Spine Δ
 
-dispAlg : {S : Sig Δ} → Spine (alg S X) → (Spine (δ ∷ Δ , _ ∶ X δ , ∙) → Ty) → Tel
-dispInput : ∀ {X} → (O : Op Δ) → (Spine (δ ∷ Δ , _ ∶ X δ , ∙) → Ty) → Tel
-dispOutput : ∀ {Y} → {O : Op Δ} → Spine (dispInput {X = X} O Y) → Spine (alg (O ◁ ε) X) → Spine (δ ∷ Δ , _ ∶ X δ , ∙)
+dispAlg : {S : Sig Δ} → Spine (alg S X) → (Spine (Δ ▷ X) → Ty) → Tel
+dispInput : ∀ {X} → (O : Op Δ) → (Spine (Δ ▷ X) → Ty) → Tel
+dispOutput : ∀ {Y} → {O : Op Δ} → Spine (dispInput {X = X} O Y) → Spine (alg (O ◁ ε) X) → Spine (Δ ▷ X)
 
 Sec : (Y : Spine Δ → Ty) → Set
 coh : {S : Sig Δ} → {α : Spine (alg S X)} → Spine (dispAlg α Y) → Sec Y → Tel
-_$_ : {Y : Spine (δ ∷ Δ , _ ∶ X δ , ∙) → Ty} → Sec Y → Spine (input O X) → Spine (dispInput O Y)
+_$_ : {Y : Spine (Δ ▷ X) → Ty} → Sec Y → Spine (input O X) → Spine (dispInput O Y)
 
 ind : {S : Sig Δ} → (α : Spine (alg S X)) → Ty
 indAlg : (S : Sig Δ) → Tel
@@ -110,6 +117,7 @@ data Ty where
   Π : (A : Ty) → (Tm A → Ty) → Ty
   Σ : (A : Ty) → (Tm A → Ty) → Ty
   Id : {A : Ty} → Tm A → Tm A → Ty
+  Data : (S : Sig Δ) → Spine (indAlg S) → Spine Δ → Ty
   
 syntax Π A (λ x → B) = [ x ∶ A ] ⇒ B
 syntax Σ A (λ x → B) = [ x ∶ A ] × B
@@ -138,6 +146,10 @@ data Tm where
   J : (P : (a : Tm A) → (b : Tm A) → Tm (Id a b) → Ty)
     → ((a : Tm A) → Tm (P a a refl))
     → {a : Tm A} → {b : Tm A} → (p : Tm (Id a b)) → Tm (P a b p)
+
+  ctor : ∀ {γ} → O ∈ S → (v : Spine (input O (Data S γ))) → Tm (Data S γ (output v))
+
+  elim : (M : Spine (Δ ▷ X) → Ty) → (δx : Spine (Δ ▷ X)) → Tm (M δx)
     
 apps : Tm (Πs Δ Y) → (δ : Spine Δ) → Tm (Y δ)
 apps {Δ = ∙} t [] = t
@@ -158,22 +170,22 @@ dispAlg {S = ε} α Y = ∙
 dispAlg {S = (O ◁ S)} (αO , α) Y = _ ∶ [ μ ∷ dispInput O Y ] ⇒ Y (dispOutput μ (αO , [])) , dispAlg α Y
 
 dispInput {X = X} (Π A O') Y = a ∶ A , dispInput (O' a) Y
-dispInput {X = X} (Πι δ O') Y = x ∶ X δ , _ ∶ Y (δ ,, (x , [])) , dispInput O' Y
+dispInput {X = X} (Πι δ O') Y = x ∶ X δ , _ ∶ Y (δ ⨾ x) , dispInput O' Y
 dispInput {X = X} (ι δ) Y = ∙
 
 dispOutput {Y = Y} {O = Π A O'} (a , μ) (α , []) = dispOutput μ (app α a , [])
 dispOutput {Y = Y} {O = Πι δ O'} (x , y , μ) (α , []) = dispOutput μ (app α x , [])
-dispOutput {Y = Y} {O = ι δ} [] (α , []) = (δ ,, (α , []))
+dispOutput {Y = Y} {O = ι δ} [] (α , []) = (δ ⨾ α)
   
 Sec {Δ = Δ} Y = (δ : Spine Δ) → Tm (Y δ)
 
 _$_ {O = Π A O'} σ (a , v) = (a , σ $ v)
-_$_ {O = Πι δ O'} σ (x , v) = (x , σ (δ ,, (x , [])) , σ $ v)
+_$_ {O = Πι δ O'} σ (x , v) = (x , σ (δ ⨾ x) , σ $ v)
 _$_ {O = ι δ} σ [] = []
 
-dispOutputId : ∀ {X : Spine Δ → Ty} {Y : Spine (δ ∷ Δ , _ ∶ X δ , ∙) → Ty}
+dispOutputId : ∀ {X : Spine Δ → Ty} {Y : Spine (Δ ▷ X) → Ty}
     → (σ : Sec Y) → (O : Op Δ) → (v : Spine (input O X)) → (αO : Tm ([ ν ∷ input O X ] ⇒ X (output ν)))
-    → Y (dispOutput (σ $ v) (αO , [])) ≡ Y (output v ,, (apps αO v , []))
+    → Y (dispOutput (σ $ v) (αO , [])) ≡ Y (output v ⨾ apps αO v)
 dispOutputId σ (Π A O') (a , v) αO = dispOutputId σ (O' a) v (app αO a)
 dispOutputId σ (Πι δ O') (x , v) αO = dispOutputId σ O' v (app αO x)
 dispOutputId σ (ι δ) [] αO = refl
@@ -183,11 +195,11 @@ metaCoeTm refl t = t
 
 coh {S = ε} [] σ = ∙
 coh {X = X} {S = (O ◁ S)} {α = αO , α} (βO , β) σ =
-  _ ∶ [ v ∷ input O X ] ⇒ Id (σ (output v ,, (apps αO v , []))) (metaCoeTm (dispOutputId σ O v αO) (apps βO (σ $ v))) , coh β σ
+  _ ∶ [ v ∷ input O X ] ⇒ Id (σ (output v ⨾ apps αO v)) (metaCoeTm (dispOutputId σ O v αO) (apps βO (σ $ v))) , coh β σ
   
 ind {Δ = Δ} {X = X} {S} α =
-  [ Y ∶ [ _ ∷ (δ ∷ Δ , _ ∶ X δ , ∙) ] ⇒ U ]
+  [ Y ∶ [ _ ∷ Δ ▷ X ] ⇒ U ]
   ⇒ [ β ∷ dispAlg α (λ δx → El (apps Y δx)) ]
-  ⇒ Σs (σ ∶ [ δx ∷ (δ ∷ Δ , _ ∶ X δ , ∙) ] ⇒ El (apps Y δx) , coh β (apps σ))
+  ⇒ Σs (σ ∶ [ δx ∷ Δ ▷ X ] ⇒ El (apps Y δx) , coh β (apps σ))
   
 indAlg {Δ = Δ} S = (X ∶ [ δ ∷ Δ ] ⇒ U , α ∷ alg S (λ δ → El (apps X δ)) , κ ∶ ind α , ∙)
