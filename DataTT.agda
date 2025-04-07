@@ -94,6 +94,14 @@ data _∈_ : Op Δ → Sig Δ → Set where
   here : O ∈ (O ◁ S)
   there : O ∈ S → O ∈ (O' ◁ S)
   
+sigTel : (S : Sig Δ) → (∀ {O} → O ∈ S → Ty) → Tel
+sigTel ε f = ∙
+sigTel (O ◁ S) f = _ ∶ f here , sigTel S (λ p → f (there p))
+
+sigSpine : (S : Sig Δ) → ∀ {P : ∀ {O} → O ∈ S → Ty} → (∀ {O} → (p : O ∈ S) → Tm (P p)) → Spine (sigTel S P) 
+sigSpine ε f = []
+sigSpine (O ◁ S) f = f here , sigSpine S (λ p → f (there p))
+  
 alg : (S : Sig Δ) → (Spine Δ → Ty) → Tel
 input : (O : Op Δ) → (Spine Δ → Ty) → Tel
 output : {O : Op Δ} → Spine (input O X) → Spine Δ
@@ -135,6 +143,8 @@ A ⇒ B = [ x ∶ A ] ⇒ B
 
 syntax Πs Δ (λ δ → B) = [ δ ∷ Δ ] ⇒ B
 
+ctors : (S : Sig Δ) → (γ : Spine (indAlg S)) → Spine (alg S (Data S γ))
+
 data Tm where
   lam : ((a : Tm A) → Tm (B a)) → Tm (Π A B)
   app : Tm (Π A B) → (a : Tm A) → Tm (B a)
@@ -149,14 +159,21 @@ data Tm where
 
   ctor : ∀ {γ} → O ∈ S → (v : Spine (input O (Data S γ))) → Tm (Data S γ (output v))
 
-  elim : (M : Spine (Δ ▷ X) → Ty) → (δx : Spine (Δ ▷ X)) → Tm (M δx)
+  elim : ∀ {γ} → (M : Spine (Δ ▷ Data S γ) → Ty)
+    → (β : Spine (dispAlg (ctors S γ) M))
+    → (δx : Spine (Δ ▷ Data S γ)) → Tm (M δx)
     
 apps : Tm (Πs Δ Y) → (δ : Spine Δ) → Tm (Y δ)
 apps {Δ = ∙} t [] = t
 apps {Δ = ext A Δ} t (a , δ) = apps (app t a) δ
 
-alg ε X = ∙
-alg (O ◁ S) X = _ ∶ [ ν ∷ input O X ] ⇒ X (output ν) , alg S X
+lams : ((δ : Spine Δ) → Tm (Y δ)) → Tm (Πs Δ Y)
+lams {Δ = ∙} f = f []
+lams {Δ = ext A Δ} f = lam (λ a → lams (λ δ → f (a , δ)))
+
+alg S X = sigTel S (λ {O} _ → [ ν ∷ input O X ] ⇒ X (output ν))
+
+ctors S γ = sigSpine S (λ p → lams (ctor p))
 
 input (Π A O') X = a ∶ A , input (O' a) X
 input (Πι δ O') X = _ ∶ X δ , input O' X
