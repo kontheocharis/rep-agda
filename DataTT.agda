@@ -1,12 +1,9 @@
-{-# OPTIONS --rewriting #-}
 module DataTT where
 
 open import Agda.Builtin.Nat using (Nat; suc; zero)
 open import Data.Fin.Base using (Fin; suc; zero)
 open import Relation.Binary.PropositionalEquality.Core using (_≡_; refl)
 open import Data.Product.Base using (_,_) renaming (Σ to Pair)
-
-{-# BUILTIN REWRITE _≡_ #-}
 
 data Ty : Set
 
@@ -120,8 +117,8 @@ indAlg : (S : Sig Δ) → Tel
 {-# NO_POSITIVITY_CHECK #-}
 data Ty where
   U : Ty
-  ⊤ : Ty
   El : Tm U → Ty
+  ⊤ : Ty
   Π : (A : Ty) → (Tm A → Ty) → Ty
   Σ : (A : Ty) → (Tm A → Ty) → Ty
   Id : {A : Ty} → Tm A → Tm A → Ty
