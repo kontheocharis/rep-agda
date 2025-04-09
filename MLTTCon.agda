@@ -1,6 +1,8 @@
-{-# OPTIONS --prop --without-K --show-irrelevant --safe #-}
+{-# OPTIONS --prop --without-K --rewriting #-}
 
 module MLTTCon where
+
+import Relation.Binary using (Reflexive; Symmetric; Transitive; IsEquivalence)
 
 data Con  : Set
 data Ty   : Con → Set
@@ -32,6 +34,8 @@ data Con where
   
 <_> : Tm Γ A → Sub Γ (Γ , A)
 
+p' : Sub (Γ , A) Γ 
+
 data Ty where
   coe  : Con~ Γ₀ Γ₁ → Ty Γ₀ → Ty Γ₁
 
@@ -43,6 +47,7 @@ data Ty where
 
   ⊤    : Ty Γ
   Σ    : (A : Ty Γ) → Ty (Γ , A) → Ty Γ
+  Id   : {A : Ty Γ} → Ty (Γ , A , A [ p' ])
 
 data Sub where
   coe : Con~ Γ₀ Γ₁ → Con~ Δ₀ Δ₁ → Sub Γ₀ Δ₀ → Sub Γ₁ Δ₁
@@ -53,6 +58,8 @@ data Sub where
   ε   : Sub Γ ∙
   p   : Sub (Γ , A) Γ
   _,_ : (σ : Sub Γ Δ) → Tm Γ (A [ σ ]) → Sub Γ (Δ , A)
+  
+p' = p
 
 data Tm where
   coe  : ∀ Γ₂ → Ty~ Γ₂ A₀ A₁ → Tm Γ₀ A₀ → Tm Γ₁ A₁
@@ -68,6 +75,9 @@ data Tm where
   fst  : Tm Γ (Σ A B) → Tm Γ A
   snd  : (p : Tm Γ (Σ A B)) → Tm Γ (B [ < fst p > ])
 
+  refl : Tm (Γ , A) (Id [ < q > ])
+  J   : {A : Ty Γ} → (P : Ty (Γ , A , A [ p ] , Id)) → Tm (Γ , A) (P [ < q > , refl ]) → Tm (Γ , A , A [ p ] , Id) P
+
 data Con~ where
   rfl : Con~ Γ Γ
   sym : Con~ Γ Δ → Con~ Δ Γ
@@ -76,6 +86,10 @@ data Con~ where
   ------------------------------------------------------------
   ∙   : Con~ ∙ ∙
   _,_ : ∀ Γ₂ → Ty~ Γ₂ A₀ A₁ → Con~ (Γ₀ , A₀) (Γ₁ , A₁)
+
+p~ : Sub~ (Γ₂ , A₂) Γ₂ p p 
+
+wk : (σ : Sub Γ Δ) → Sub (Γ , A [ σ ]) (Δ , A)
 
 data Ty~ where
   rfl  : Ty~ rfl A A
@@ -91,16 +105,20 @@ data Ty~ where
 
   ⊤    : Ty~ Γ₂ ⊤ ⊤
   Σ    : (A₂ : Ty~ Γ₂ A₀ A₁) → Ty~ (Γ₂ , A₂) B₀ B₁ → Ty~ Γ₂ (Σ A₀ B₀) (Σ A₁ B₁)
+  Id   : {A₂ : Ty~ Γ₂ A₀ A₁} → Ty~ (Γ₂ , A₂ , A₂ [ p~ {A₂ = A₂} ]) (Id {A = A₀}) (Id {A = A₁})
 
   ------------------------------------------------------------
   [id] : Ty~ rfl (A [ id ]) A
   [∘]  : Ty~ rfl (A [ σ ∘ δ ]) (A [ σ ] [ δ ])
   U[]  : Ty~ rfl (U [ σ ]) U
-  Π[]  : Ty~ rfl (Π A B [ σ ]) (Π (A [ σ ]) (B [ σ ∘ p , coe rfl (sym [∘]) q ]))
+  Π[]  : Ty~ rfl (Π A B [ σ ]) (Π (A [ σ ]) (B [ wk σ ]))
   El[] : Ty~ rfl (El t [ σ ]) (El (coe rfl U[] (t [ σ ])))
   
   ⊤[]  : Ty~ rfl (⊤ [ σ ]) ⊤
-  Σ[]  : Ty~ rfl (Σ A B [ σ ]) (Σ (A [ σ ]) (B [ σ ∘ p , coe rfl (sym [∘]) q ]))
+  Σ[]  : Ty~ rfl (Σ A B [ σ ]) (Σ (A [ σ ]) (B [ wk σ ]))
+  Id[] : Ty~ (rfl , rfl , A₂) ((Id {A = A}) [ wk (wk σ) ]) (Id {A = A [ σ ]})
+
+wk σ = σ ∘ p , coe rfl (sym [∘]) q
   
 < a > = id , coe rfl (sym [id]) a
   
@@ -127,6 +145,14 @@ data Sub~ where
   p∘  : Sub~ rfl rfl (p ∘ (σ , t)) σ
   pq  : Sub~ rfl rfl (p , q) (id {Γ , A})
   ,∘  : Sub~ rfl rfl ((σ , t) ∘ δ) (σ ∘ δ , coe rfl (sym [∘]) (t [ δ ]))
+  idp  : Sub~ rfl rfl (p ∘ σ , coe rfl (sym [∘]) (q [ σ ])) σ
+  
+p~ {A₂ = A₂} = p {A₂ = A₂}
+
+<>-comm : Sub~ rfl rfl (< t > ∘ σ) (wk σ ∘ < t [ σ ] >)
+
+<>-swap-Ty : Ty~ rfl ((A [ < t > ]) [ σ ]) ((A [ wk σ ]) [ < t [ σ ] > ])
+<>-swap-Ty = trs (trs (sym [∘]) (rfl [ <>-comm ])) [∘]
 
 data Tm~ where
   rfl  : Tm~ rfl rfl t t
@@ -141,12 +167,27 @@ data Tm~ where
   app  : Tm~ Γ₂ (Π A₂ B₂) t₀ t₁ → Tm~ (Γ₂ , A₂) B₂ (app t₀) (app t₁)
 
   tt   : Tm~ Γ₂ ⊤ tt tt
+  pair : Tm~ Γ₂ (Σ A₂ B₂) (pair t₀ u₀) (pair t₁ u₁)
   fst  : Tm~ Γ₂ (Σ A₂ B₂) t₀ t₁ → Tm~ Γ₂ A₂ (fst t₀) (fst t₁)
   snd  : (t₂ : Tm~ Γ₂ (Σ A₂ B₂) t₀ t₁) → Tm~ Γ₂ (B₂ [ <_>~ {A₂ = A₂} (fst {B₂ = B₂} t₂) ]) (snd t₀) (snd t₁)
+  
+  refl : Tm~ Γ₂ (Id {A₂ = A₂} [ < q {A₂ = A₂} >~ ]) (refl {A = A₀}) (refl {A = A₁})
+  J   : {A₂ : Ty~ Γ₂ A₀ A₁} → ∀ {P₀ P₁} → (P : Ty~ (Γ₂ , A₂ , A₂ [ p {A₂ = A₂} ] , Id {A₂ = A₂}) P₀ P₁)
+     → ∀ {t₀ t₁}
+     → (t₂ : Tm~ (Γ₂ , A₂) (P [ _,_ {A₂ = Id {A₂ = A₂}} (< q {A₂ = A₂} >~) (refl {A₂ = A₂}) ]) t₀ t₁)
+     → Tm~ (Γ₂ , A₂ , A₂ [ p {A₂ = A₂} ] , Id {A₂ = A₂}) P (J P₀ t₀) (J P₁ t₁)
 
   ------------------------------------------------------------
+  [id] : Tm~ rfl [id] (t [ id ]) t
+  [∘]  : Tm~ rfl [∘] (t [ σ ∘ δ ]) (t [ σ ] [ δ ])
   q[]   : Tm~ rfl (trs (sym [∘]) (rfl [ p∘ ])) (q [ σ , t ]) t
-  lam[] : Tm~ rfl Π[] (lam t [ σ ]) (lam (t [ σ ∘ p , coe rfl (sym [∘]) q ]))
+  lam[] : Tm~ rfl Π[] (lam t [ σ ]) (lam (t [ wk σ ]))
+
+  tt[] : Tm~ rfl ⊤[] (tt [ σ ]) tt
+  pair[] : Tm~ rfl Σ[] (pair t u [ σ ]) (pair (t [ σ ]) (coe rfl <>-swap-Ty (u [ σ ])))
+  fst[] : Tm~ rfl rfl (fst t [ σ ]) (fst (coe rfl Σ[] (t [ σ ])))
+  snd[] : Tm~ rfl rfl (snd t [ σ ]) (coe rfl (trs (rfl [ _,_ {A₂ = rfl} id (trs (sym (coh _ _ _)) (trs (sym fst[]) (coh _ _ _)))]) (sym <>-swap-Ty)) (snd (coe rfl Σ[] (t [ σ ]))))
+
   Πβ    : Tm~ rfl rfl (app (lam t)) t
   Πη    : Tm~ rfl rfl (lam (app t)) t
 
@@ -155,4 +196,53 @@ data Tm~ where
   pairβ₂ : Tm~ rfl (A₂ [ < pairβ₁ >~ ]) (snd (pair t u)) u
   pairη : Tm~ rfl rfl (pair (fst t) (snd t)) t
 
+  -- Jelim : ∀ {P u} → Tm~ rfl rfl (J P u [ {!   !} ]) {!   !}
+  
 <_>~ {A₂ = A₂} {t = t} {u = u} a = _,_ {A₂ = A₂} id (trs (trs (sym (coh rfl (sym [id]) t)) a) (coh rfl (sym [id]) u))
+
+<>-comm {t = t} {σ = σ} = {!   !} -- trs ,∘ (trs (trs idl rfl , (trs (sym (coh rfl _ _)) (trs ({!   !}) (coh rfl _ _)))) (sym ,∘))
+
+{-# BUILTIN REWRITE Sub~ #-}
+{-# BUILTIN REWRITE Ty~ #-}
+{-# BUILTIN REWRITE Tm~ #-}
+
+[][]'-Ty : Ty~ rfl  ((A [ σ ]) [ δ ]) (A [ σ ∘ δ ])
+[][]'-Ty = sym [∘]
+
+[][]'-Tm : Tm~ rfl (sym [∘]) ((t [ σ ]) [ δ ]) (t [ σ ∘ δ ])
+[][]'-Tm = sym [∘]
+
+q[]' : Tm~ rfl (trs (sym [∘]) (rfl [ p∘ ])) (q [ σ , t ]) t
+q[]' = q[]
+
+[id]'-Ty : Ty~ rfl (A [ id ]) A
+[id]'-Ty = [id]
+
+[id]'-Tm : Tm~ rfl [id] (t [ id ]) t
+[id]'-Tm = [id]
+
+ass' : Sub~ rfl rfl ((σ ∘ δ) ∘ ν) (σ ∘ δ ∘ ν)
+ass' = sym ass
+
+,∘' :  Sub~ rfl rfl ((σ , t) ∘ δ) (σ ∘ δ , coe rfl (sym [∘]) (t [ δ ]))
+,∘' = ,∘
+
+idl' : Sub~ rfl rfl (id ∘ σ) σ
+idl' = idl
+
+idr' : Sub~ rfl rfl (σ ∘ id) σ
+idr' = idr
+
+p∘' : Sub~ rfl rfl (p ∘ (σ , t)) σ
+p∘' = p∘
+
+pq' : Sub~ rfl rfl (p , q) (id {Γ , A})
+pq' = pq
+
+idp' : Sub~ rfl rfl (p ∘ σ , coe rfl (sym [∘]) (q [ σ ])) σ
+idp' = idp
+
+remove-coe' : Sub~ rfl rfl (p ∘ σ , coe rfl (sym [∘]) (q [ σ ])) σ
+remove-coe' = idp
+
+{-# REWRITE [][]'-Ty [][]'-Tm q[]' [id]'-Ty [id]'-Tm ass' ,∘' idl' idr' p∘' pq' idp' remove-coe' #-}
