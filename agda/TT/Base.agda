@@ -98,11 +98,18 @@ record Π-structure (T : TT) : Set1 where
     apps~ {Y~ = λ δ~ → Y~ (_,~_ {Δ~ = Δ~} a~ δ~)}
       (app~ {B~ = λ a~ → Πs~ (Δ~ a~) (λ δ~ → Y~ (_,~_ {Δ~ = Δ~} a~  δ~))} t~ a~) δ~
 
-  Πs-β : ∀ {Δ} {B : Spine Δ → Ty} {f : (δ : Spine Δ) → Tm (B δ)} {δ : Spine Δ}
+  Πs-β : ∀ {Δ}
+    {B : Spine Δ → Ty}
+    {B~ : ∀ {δ δ'} → Spine~ refl-Tel δ δ' → Ty~ (B δ) (B δ')}
+    {f : (δ : Spine Δ) → Tm (B δ)} {δ : Spine Δ}
     → Tm~ refl-Ty (apps {Δ = Δ} (lams f) δ) (f δ)
   Πs-β {Δ = ∙} {B} {f} {δ = []} = refl-Tm
-  Πs-β {Δ = ext A Δ} {B} {f} {δ = (a , δ)} = {!   !}
-    -- trans-Tm (apps~ (Π-β {f = λ a → lams (λ δ → f (a , δ))}) refl-Spine) (Πs-β {f = {!   !}})
+  Πs-β {Δ = ext A Δ} {B} {B~} {f} {δ = (a , δ)} = 
+    trans-Tm
+      (apps~ {Y~ = λ δ~ → B~ (_,~_ {Δ~ = λ a~ → {!   !}} refl-Tm δ~)}
+        (Π-β {f = λ a' → lams (λ δ' → f (a' , δ'))})
+        (refl-Spine {δ = δ}))
+      (Πs-β {Δ = Δ a} {B~ = λ δ~ → B~ (_,~_ {Δ~ = λ a~ → {!   !}} refl-Tm δ~)} {f = λ δ' → f (a , δ')} {δ = δ})
   
 record ⊤-structure (T : TT) : Set1 where
   open TT T
