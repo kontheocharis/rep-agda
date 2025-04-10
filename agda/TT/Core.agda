@@ -1,11 +1,14 @@
+{-# OPTIONS --prop #-}
 module TT.Core where
+
+open import Relation.Binary.PropositionalEquality.Core using (_≡_; refl; subst)
 
 record TT : Set1 where
   field
     Ty : Set
     Tm : Ty → Set
-    Ty~ : Ty → Ty → Set
-    Tm~ : ∀ {A A'} → Ty~ A A' → Tm A → Tm A' → Set
+    Ty~ : Ty → Ty → Prop
+    Tm~ : ∀ {A A'} → Ty~ A A' → Tm A → Tm A' → Prop
     
     refl-Ty : ∀ {A} → Ty~ A A
     sym-Ty : ∀ {A B} → Ty~ A B → Ty~ B A
@@ -17,3 +20,11 @@ record TT : Set1 where
 
     coe : ∀ {A A'} → Ty~ A A' → Tm A → Tm A'
     coe-unique : ∀ {A A'} {A~ : Ty~ A A'} {t : Tm A} → Tm~ A~ t (coe A~ t)
+    
+    
+
+  lift-Ty : ∀ {A A'} → A ≡ A' → Ty~ A A'
+  lift-Ty refl = refl-Ty
+
+  transp-Ty : ∀ {A A'} → A ≡ A' → Tm A → Tm A'
+  transp-Ty refl t = t

@@ -1,9 +1,10 @@
+{-# OPTIONS --prop #-}
 module TT.Tel where
 
 open import Data.Product.Base using (_,_) renaming (Σ to Pair)
 open import TT.Core
 
-module Telescopes (T : TT) where
+module Tel-construction (T : TT) where
   open TT T
 
   data Tel : Set
@@ -21,6 +22,8 @@ module Telescopes (T : TT) where
   data Spine where
     [] : Spine ∙
     _,_ : ∀ {A Δ} → (a : Tm A) → Spine (Δ a) → Spine (ext A Δ)
+    
+  infixr 4 _,_
     
   syntax ext A (λ a → Δ) = a ∶ A , Δ
 

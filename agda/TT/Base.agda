@@ -1,3 +1,4 @@
+{-# OPTIONS --prop #-}
 module TT.Base where
 
 open import TT.Core
@@ -12,6 +13,9 @@ record U-structure (T : TT) : Set1 where
 
     U-η-1 : ∀ {A} → Ty~ (El (code A)) A
     U-η-2 : ∀ {t} → Tm~ refl-Ty (code (El t)) t
+
+    El~ : ∀ {A~ t t'} → Tm~ A~ t t' → Ty~ (El t) (El t')
+    code~ : ∀ {A A'} → Ty~ A A' → Tm~ refl-Ty (code A) (code A')
       
 
 record Π-structure (T : TT) : Set1 where
@@ -30,23 +34,52 @@ record Π-structure (T : TT) : Set1 where
     Π-η : ∀ {A} {B : Tm A → Ty} {f : Tm (Π A B)}
       → Tm~ refl-Ty (lam (λ t → app f t)) f
 
+    Π~ : ∀ {A A'} → (A~ : Ty~ A A') → ∀ {B B'} → (B~ : ∀ {a a'} → Tm~ A~ a a' → Ty~ (B a) (B' a'))
+      → Ty~ (Π A B) (Π A' B')
+
+    lam~ : ∀ {A A'} {A~ : Ty~ A A'} → ∀ {B : Tm A → Ty} {B' : Tm A' → Ty}
+      → {B~ : ∀ {a a'} → Tm~ A~ a a' → Ty~ (B a) (B' a')}
+      → {f : (a : Tm A) → Tm (B a)}
+      → {f' : (a' : Tm A') → Tm (B' a')}
+      → {f~ : ∀ {a a'} → (a~ : Tm~ A~ a a') → Tm~ (B~ a~) (f a) (f' a')}
+      → Tm~ (Π~ A~ B~) (lam f) (lam f')
+
+    app~ : ∀ {A A'} {A~ : Ty~ A A'} → ∀ {B : Tm A → Ty} {B' : Tm A' → Ty}
+      → {B~ : ∀ {a a'} → Tm~ A~ a a' → Ty~ (B a) (B' a')}
+      → {f : Tm (Π A B)}
+      → {f' : Tm (Π A' B')}
+      → {f~ : Tm~ (Π~ A~ B~) f f'}
+      → ∀ {t t'} → (a~ : Tm~ A~ t t')
+      → Tm~ (B~ a~) (app f t) (app f' t')
+      
+
   syntax Π A (λ x → B) = [ x ∶ A ] ⇒ B
       
-  open Telescopes T
+  open Tel-construction T
 
   Πs : (Δ : Tel) → (Spine Δ → Ty) → Ty
   Πs ∙ t = t []
   Πs (ext A Δ) t = [ a ∶ A ] ⇒ Πs (Δ a) (λ δ → t (a , δ))
 
   syntax Πs Δ (λ δ → B) = [ δ ∷ Δ ] ⇒ B
-    
-  apps : Tm (Πs Δ Y) → (δ : Spine Δ) → Tm (Y δ)
-  apps {Δ = ∙} t [] = t
-  apps {Δ = ext A Δ} t (a , δ) = apps (app t a) δ
 
   lams : ((δ : Spine Δ) → Tm (Y δ)) → Tm (Πs Δ Y)
   lams {Δ = ∙} f = f []
   lams {Δ = ext A Δ} f = lam (λ a → lams (λ δ → f (a , δ)))
+
+
+  -- lams~ : ∀ {Δ Δ'} {Δ~ : Tel~
+    
+
+  apps : Tm (Πs Δ Y) → (δ : Spine Δ) → Tm (Y δ)
+  apps {Δ = ∙} t [] = t
+  apps {Δ = ext A Δ} t (a , δ) = apps (app t a) δ
+  
+
+  Πs-β : ∀ {Δ} {B : Spine Δ → Ty} {f : (δ : Spine Δ) → Tm (B δ)} {δ : Spine Δ}
+    → Tm~ refl-Ty (apps {Δ = Δ} (lams f) δ) (f δ)
+  Πs-β {Δ = ∙} {B} {f} {δ = []} = refl-Tm
+  Πs-β {Δ = ext A Δ} {B} {f} {δ = (a , δ)} = trans-Tm ({!   !}) refl-Tm
   
 record ⊤-structure (T : TT) : Set1 where
   open TT T
@@ -84,7 +117,7 @@ module Σs-notation (T : TT) {{T-Σ : Σ-structure T}} {{T-⊤ : ⊤-structure T
   open TT T
   open Σ-structure T-Σ
   open ⊤-structure T-⊤
-  open Telescopes T
+  open Tel-construction T
 
   Σs : Tel → Ty
   Σs ∙ = ⊤
