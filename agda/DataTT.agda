@@ -1,17 +1,17 @@
+{-# OPTIONS --prop --allow-unsolved-metas #-}
 module DataTT where
 
 open import Agda.Builtin.Nat using (Nat; suc; zero)
 open import Data.Fin.Base using (Fin; suc; zero)
 open import Relation.Binary.PropositionalEquality.Core using (_≡_; refl)
 open import Data.Product.Base using (_,_) renaming (Σ to Pair)
+import Tel
 
 data Ty : Set
 
 data Tm : Ty → Set
 
-data Tel : Set
-
-data Spine : Tel → Set
+open Tel.ForTheory Ty Tm
 
 data Op : Tel → Set
 
@@ -23,9 +23,6 @@ variable
   B B' : Tm _ → Ty
   t t' u u' : Tm _
   v v' w w' : Tm _ → Tm _
-  Δ Δ' : Tel
-  X X' Y Y' : Spine _ → Ty
-  δ δ' α β : Spine _
   S S' : Sig _
   O O' : Op _
   
@@ -38,45 +35,6 @@ variable
 --   B≈ B≈' : Tm≈ _ _ _ → Ty≈ _ _
 --   t≈ t≈' u≈ u≈' : Tm≈ _ _ _
 --   v≈ v≈' w≈ w≈' : Tm≈ _ _ _ → Tm≈ _ _ _
-
-data Tel where
-  ∙ : Tel
-  ext : (A : Ty) → (Tm A → Tel) → Tel
-
-data Spine where
-  [] : Spine ∙
-  _,_ : ∀ {Δ} → (a : Tm A) → Spine (Δ a) → Spine (ext A Δ)
-  
-syntax ext A (λ a → Δ) = a ∶ A , Δ
-
-extN : (Δ : Tel) → (Spine Δ → Tel) → Tel
-extN ∙ Δ' = Δ' []
-extN (ext A Δ) Δ' = ext A (λ a → extN (Δ a) (λ δ → Δ' (a , δ)))
-
-syntax extN Δ (λ δ → Δ') = δ ∷ Δ , Δ'
-
-_,,_ : ∀ {Δ'} → (δ : Spine Δ) → Spine (Δ' δ) → Spine (extN Δ Δ')
-_,,_ {Δ = ∙} [] v = v
-_,,_ {Δ = ext A Δ} (a , δ) v = (a , δ ,, v)
-
-_▷_ : (Δ : Tel) → (Spine Δ → Ty) → Tel
-Δ ▷ X = δ ∷ Δ , _ ∶ X δ , ∙
-
-_⨾_ : (δ : Spine Δ) → Tm (X δ) → Spine (Δ ▷ X)
-δ ⨾ t = δ ,, (t , [])
-
-
--- init : ∀ {Δ Δ'} → Spine (extN Δ Δ') → Spine Δ
--- init {Δ = ∙} v = []
--- init {Δ = ext A Δ} (a , v) = a , init v
-
--- tail : ∀ {Δ Δ'} → (v : Spine (extN Δ Δ')) → Spine (Δ' (init v))
--- tail {Δ = ∙} v = v
--- tail {Δ = ext A Δ} (a , v) = tail {Δ = Δ a} v
-
-split : ∀ {Δ Δ'} → Spine (extN Δ Δ') → Pair (Spine Δ) (λ δ → Spine (Δ' δ))
-split {Δ = ∙} v = [] , v
-split {Δ = ext A Δ} (a , v) = let (v' , v'') = split v in ((a , v') , v'')
   
 data Sig where
   ε : Sig Δ
@@ -142,6 +100,17 @@ A ⇒ B = [ x ∶ A ] ⇒ B
 syntax Πs Δ (λ δ → B) = [ δ ∷ Δ ] ⇒ B
 
 ctors : (S : Sig Δ) → (γ : Spine (indAlg S)) → Spine (alg S (Data S γ))
+
+record SigSystem : Set1 where
+  field
+    Sigₛ : Tel → Set
+    Opₛ : Tel → Set
+    _∈ₛ_ : Opₛ Δ → Sigₛ Δ → Set
+    inputₛ : Opₛ Δ → (Spine Δ → Ty) → Tel
+    outputₛ : {O : Opₛ Δ} → Spine (inputₛ O X) → Spine Δ
+    algₛ : (S : Sigₛ Δ) → (X : Spine Δ → Ty) → Tel
+    dispAlgₛ : {S : Sigₛ Δ} → Spine (algₛ S X) → (Y : Spine (Δ ▷ X) → Ty) → Tel
+    
 
 data Tm where
   lam : ((a : Tm A) → Tm (B a)) → Tm (Π A B)
@@ -235,6 +204,58 @@ _-κ:-_ : (S : Sig Δ) → (γ : Spine (indAlg S)) → Tm (ind {S = S} (S -α: �
 S -κ:- (X , ακ) with split {Δ = alg S (λ δ → El (apps X δ))} ακ
 ... | (_ , κ , []) = κ
   
+record DataTT-model : Set1 where
+  field
+    -- Type interpretation
+    Ty∘ : Set
+    Tm∘ : Ty∘ → Set
+    
+    -- Universe
+    U∘ : Ty∘
+    El∘ : Tm∘ U∘ → Ty∘
+    
+    -- Unit type
+    ⊤∘ : Ty∘
+    tt∘ : Tm∘ ⊤∘
+    
+    -- Dependent function type (Π)
+    Π∘ : (A : Ty∘) → (Tm∘ A → Ty∘) → Ty∘
+    lam∘ : {A : Ty∘} → {B : Tm∘ A → Ty∘}
+          → ((a : Tm∘ A) → Tm∘ (B a))
+          → Tm∘ (Π∘ A B)
+    app∘ : {A : Ty∘} → {B : Tm∘ A → Ty∘}
+          → Tm∘ (Π∘ A B)
+          → (a : Tm∘ A)
+          → Tm∘ (B a)
+    
+    -- Dependent pair type (Σ)
+    Σ∘ : (A : Ty∘) → (Tm∘ A → Ty∘) → Ty∘
+    pair∘ : {A : Ty∘} → {B : Tm∘ A → Ty∘}
+           → (a : Tm∘ A)
+           → (b : Tm∘ (B a))
+           → Tm∘ (Σ∘ A B)
+    fst∘ : {A : Ty∘} → {B : Tm∘ A → Ty∘}
+          → Tm∘ (Σ∘ A B)
+          → Tm∘ A
+    snd∘ : {A : Ty∘} → {B : Tm∘ A → Ty∘}
+          → (p : Tm∘ (Σ∘ A B))
+          → Tm∘ (B (fst∘ p))
+    
+    -- Identity type
+    Id∘ : {A : Ty∘} → Tm∘ A → Tm∘ A → Ty∘
+    refl∘ : {A : Ty∘} → {a : Tm∘ A} → Tm∘ (Id∘ a a)
+    J∘ : {A : Ty∘}
+        → (P : (a : Tm∘ A) → (b : Tm∘ A) → Tm∘ (Id∘ a b) → Ty∘)
+        → ((a : Tm∘ A) → Tm∘ (P a a refl∘))
+        → {a : Tm∘ A} → {b : Tm∘ A} → (p : Tm∘ (Id∘ a b))
+        → Tm∘ (P a b p)
+        
+    -- Repr
+    Repr∘ : Ty∘ → Ty∘
+    unrepr∘ : {A : Ty∘} → Tm∘ (Repr∘ A) → Tm∘ A
+    repr∘ : {A : Ty∘} → Tm∘ A → Tm∘ (Repr∘ A)
+
+  
 record DataTT-displayed-model : Set1 where
   field
     -- Type interpretation
@@ -303,9 +324,22 @@ open DataTT-section
 
 {-# TERMINATING #-}
 DataTT-induction : (m : DataTT-displayed-model) → DataTT-section m
-DataTT-induction m .σTy U = m .U∙
-DataTT-induction m .σTy (El t) = m .El∙ t (DataTT-induction m .σTm U t)
-DataTT-induction m .σTy (Π A B) = m .Π∙ (DataTT-induction m .σTy A) (λ a a' → DataTT-induction m .σTy (B a))
-DataTT-induction m .σTy (Σ A B) = m .Σ∙ (DataTT-induction m .σTy A) (λ a a' → DataTT-induction m .σTy (B a))
-DataTT-induction m .σTy (Id a b) = m .Id∙ (DataTT-induction m .σTm _ a) (DataTT-induction m .σTm _ b)
-DataTT-induction m .σTy ⊤ = m .⊤∙
+DataTT-induction = {!   !}
+        
+record DataTT-transformation (m : DataTT-model) : Set1 where
+  open DataTT-model m
+  field
+    τTy : Ty → Ty∘
+    τTm : (A : Ty) → Tm A → Tm∘ (τTy A)
+
+{-# TERMINATING #-}
+DataTT-rec : (m : DataTT-model) → DataTT-transformation m
+DataTT-rec = {!   !}
+
+-- DataTT-induction m .σTy U = m .U∙
+-- DataTT-induction m .σTy (El t) = m .El∙ t (DataTT-induction m .σTm U t)
+-- DataTT-induction m .σTy (Π A B) = m .Π∙ (DataTT-induction m .σTy A) (λ a a' → DataTT-induction m .σTy (B a))
+-- DataTT-induction m .σTy (Σ A B) = m .Σ∙ (DataTT-induction m .σTy A) (λ a a' → DataTT-induction m .σTy (B a))
+-- DataTT-induction m .σTy (Id a b) = m .Id∙ (DataTT-induction m .σTm _ a) (DataTT-induction m .σTm _ b)
+-- DataTT-induction m .σTy ⊤ = m .⊤∙
+-- DataTT-induction m 

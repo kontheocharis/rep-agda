@@ -4,7 +4,6 @@ open import Agda.Builtin.Nat using (Nat; suc; zero)
 open import Data.Fin.Base using (Fin; suc; zero)
 open import Relation.Binary.PropositionalEquality.Core using (_≡_; refl)
 
-
 data Ty : Set
 
 data Tm : Ty → Set
