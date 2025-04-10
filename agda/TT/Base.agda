@@ -1,4 +1,4 @@
-{-# OPTIONS --prop #-}
+{-# OPTIONS --prop --allow-unsolved-metas #-}
 module TT.Base where
 
 open import TT.Core
@@ -41,14 +41,14 @@ record Π-structure (T : TT) : Set1 where
       → {B~ : ∀ {a a'} → Tm~ A~ a a' → Ty~ (B a) (B' a')}
       → {f : (a : Tm A) → Tm (B a)}
       → {f' : (a' : Tm A') → Tm (B' a')}
-      → {f~ : ∀ {a a'} → (a~ : Tm~ A~ a a') → Tm~ (B~ a~) (f a) (f' a')}
+      → (f~ : ∀ {a a'} → (a~ : Tm~ A~ a a') → Tm~ (B~ a~) (f a) (f' a'))
       → Tm~ (Π~ A~ B~) (lam f) (lam f')
 
     app~ : ∀ {A A'} {A~ : Ty~ A A'} → ∀ {B : Tm A → Ty} {B' : Tm A' → Ty}
       → {B~ : ∀ {a a'} → Tm~ A~ a a' → Ty~ (B a) (B' a')}
       → {f : Tm (Π A B)}
       → {f' : Tm (Π A' B')}
-      → {f~ : Tm~ (Π~ A~ B~) f f'}
+      → (f~ : Tm~ (Π~ A~ B~) f f')
       → ∀ {t t'} → (a~ : Tm~ A~ t t')
       → Tm~ (B~ a~) (app f t) (app f' t')
       
@@ -63,23 +63,46 @@ record Π-structure (T : TT) : Set1 where
 
   syntax Πs Δ (λ δ → B) = [ δ ∷ Δ ] ⇒ B
 
+  Πs~ : ∀ {Δ Δ'} (Δ~ : Tel~ Δ Δ') 
+    → ∀ {Y : Spine Δ → Ty} {Y' : Spine Δ' → Ty}
+    → (Y~ : ∀ {δ δ'} → Spine~ Δ~ δ δ' → Ty~ (Y δ) (Y' δ'))
+    → Ty~ (Πs Δ Y) (Πs Δ' Y')
+  Πs~ ∙~ Y~ = Y~ []~
+  Πs~ (ext~ A~ Δ~) Y~ = Π~ A~ (λ a~ → Πs~ (Δ~ a~) (λ δ~ → Y~ (_,~_ {Δ~ = Δ~} a~ δ~)))
+
   lams : ((δ : Spine Δ) → Tm (Y δ)) → Tm (Πs Δ Y)
   lams {Δ = ∙} f = f []
   lams {Δ = ext A Δ} f = lam (λ a → lams (λ δ → f (a , δ)))
 
-
-  -- lams~ : ∀ {Δ Δ'} {Δ~ : Tel~
-    
+  lams~ : ∀ {Δ Δ'} {Δ~ : Tel~ Δ Δ'} {Y : Spine Δ → Ty} {Y' : Spine Δ' → Ty}
+    → {Y~ : ∀ {δ δ'} → Spine~ Δ~ δ δ' → Ty~ (Y δ) (Y' δ')}
+    → {f : (δ : Spine Δ) → Tm (Y δ)} {f' : (δ' : Spine Δ') → Tm (Y' δ')}
+    → (f~ : ∀ {δ δ'} → (δ~ : Spine~ Δ~ δ δ') → Tm~ (Y~ δ~) (f δ) (f' δ'))
+    → Tm~ (Πs~ Δ~ Y~) (lams f) (lams f')
+  lams~ {Δ~ = ∙~} f~ = f~ []~
+  lams~ {Δ~ = ext~ A~ Δ~} f~ = lam~ (λ a~ → lams~ (λ δ~ → f~ (_,~_ {Δ~ = Δ~} a~ δ~) ))
 
   apps : Tm (Πs Δ Y) → (δ : Spine Δ) → Tm (Y δ)
   apps {Δ = ∙} t [] = t
   apps {Δ = ext A Δ} t (a , δ) = apps (app t a) δ
   
+  apps~ : ∀ {Δ Δ'} {Δ~ : Tel~ Δ Δ'} {Y : Spine Δ → Ty} {Y' : Spine Δ' → Ty}
+    → {Y~ : ∀ {δ δ'} → Spine~ Δ~ δ δ' → Ty~ (Y δ) (Y' δ')}
+    → {t : Tm (Πs Δ Y)} {t' : Tm (Πs Δ' Y')}
+    → (t~ : Tm~ (Πs~ Δ~ Y~) t t')
+    → {δ : Spine Δ} {δ' : Spine Δ'}
+    → (δ~ : Spine~ Δ~ δ δ')
+    → Tm~ (Y~ δ~) (apps t δ) (apps t' δ')
+  apps~ {Δ~ = ∙~} t~ []~ = t~
+  apps~ {Δ~ = ext~ A~ Δ~} {Y~ = Y~} t~ (a~ ,~ δ~) =
+    apps~ {Y~ = λ δ~ → Y~ (_,~_ {Δ~ = Δ~} a~ δ~)}
+      (app~ {B~ = λ a~ → Πs~ (Δ~ a~) (λ δ~ → Y~ (_,~_ {Δ~ = Δ~} a~  δ~))} t~ a~) δ~
 
   Πs-β : ∀ {Δ} {B : Spine Δ → Ty} {f : (δ : Spine Δ) → Tm (B δ)} {δ : Spine Δ}
     → Tm~ refl-Ty (apps {Δ = Δ} (lams f) δ) (f δ)
   Πs-β {Δ = ∙} {B} {f} {δ = []} = refl-Tm
-  Πs-β {Δ = ext A Δ} {B} {f} {δ = (a , δ)} = trans-Tm ({!   !}) refl-Tm
+  Πs-β {Δ = ext A Δ} {B} {f} {δ = (a , δ)} = {!   !}
+    -- trans-Tm (apps~ (Π-β {f = λ a → lams (λ δ → f (a , δ))}) refl-Spine) (Πs-β {f = {!   !}})
   
 record ⊤-structure (T : TT) : Set1 where
   open TT T

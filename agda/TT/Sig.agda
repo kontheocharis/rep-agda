@@ -1,3 +1,4 @@
+{-# OPTIONS --prop #-}
 module TT.Sig where
 
 open import TT.Core
@@ -57,6 +58,13 @@ module Sig-construction (T : TT)
   at : ∀ {Δ} {S : Sig Δ} {P : ∀ {O} → O ∈ S → Ty} {O} → (o : O ∈ S) → Spine (sig-tel S P) → Tm (P o)
   at {S = O ◁ S} here (αO , _) = αO
   at {S = O ◁ S} (there q) (_ , α) = at q α
+  
+  sig-spine-at : ∀ {Δ} {S : Sig Δ} {P : ∀ {O} → O ∈ S → Ty} {O}
+    → (o : O ∈ S)
+    → {f : ∀ {O} → (p : O ∈ S) → Tm (P p)}
+    → at o (sig-spine S f) ≡ f o
+  sig-spine-at {S = O ◁ S} here = refl
+  sig-spine-at {S = O ◁ S} {P = P} (there o') = sig-spine-at {P = λ o' → P (there o')} o'
     
   input : (O : Op Δ) → (Spine Δ → Ty) → Tel
   input (Πext A O') X = a ∶ A , input (O' a) X

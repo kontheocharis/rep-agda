@@ -9,6 +9,9 @@ module Tel-construction (T : TT) where
 
   data Tel : Set
   data Spine : Tel → Set
+  
+  data Tel~ : Tel → Tel → Prop
+  data Spine~ : ∀ {Δ Δ'} → Tel~ Δ Δ' → Spine Δ → Spine Δ' → Prop
 
   variable
     Δ Δ' : Tel
@@ -18,12 +21,41 @@ module Tel-construction (T : TT) where
   data Tel where
     ∙ : Tel
     ext : (A : Ty) → (Tm A → Tel) → Tel
+  
+
+  data Tel~ where
+    
+    ∙~ : Tel~ ∙ ∙
+    ext~ : ∀ {A A'} → (A~ : Ty~ A A')
+      → {Δ : Tm A → Tel} → {Δ' : Tm A' → Tel}
+      → (Δ~ : ∀ {a a'} → Tm~ A~ a a' → Tel~ (Δ a) (Δ' a'))
+      → Tel~ (ext A Δ) (ext A' Δ')
+
+  postulate 
+    refl-Tel : Tel~ Δ Δ
+    sym-Tel : ∀ {Δ Δ'} → Tel~ Δ Δ' → Tel~ Δ' Δ
+    trans-Tel : ∀ {Δ Δ' Δ''} → Tel~ Δ Δ' → Tel~ Δ' Δ'' → Tel~ Δ Δ''
 
   data Spine where
     [] : Spine ∙
     _,_ : ∀ {A Δ} → (a : Tm A) → Spine (Δ a) → Spine (ext A Δ)
+
+  data Spine~ where
+
+    []~ : Spine~ ∙~ [] []
+    _,~_ : ∀ {A} {A'} {A~ : Ty~ A A'} {a : Tm A} {a' : Tm A'}
+      → {Δ : Tm A → Tel} {Δ' : Tm A' → Tel}
+      → {Δ~ : ∀ {a : Tm A} {a' : Tm A'} → Tm~ A~ a a' → Tel~ (Δ a) (Δ' a')}
+      → (a~ : Tm~ A~ a a')
+      → {v : Spine (Δ a)}
+      → {v' : Spine (Δ' a')}
+      → Spine~ (Δ~ a~) v v'
+      → Spine~ (ext~ A~ Δ~) (a , v) (a' , v')
     
   infixr 4 _,_
+
+  postulate 
+    refl-Spine : ∀ {Δ δ} → Spine~ {Δ = Δ} refl-Tel δ δ
     
   syntax ext A (λ a → Δ) = a ∶ A , Δ
 
