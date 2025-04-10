@@ -223,3 +223,89 @@ ind {Δ = Δ} {X = X} {S} α =
   ⇒ Σs (σ ∶ [ δx ∷ Δ ▷ X ] ⇒ El (apps Y δx) , coh β (apps σ))
   
 indAlg {Δ = Δ} S = (X ∶ [ δ ∷ Δ ] ⇒ U , α ∷ alg S (λ δ → El (apps X δ)) , κ ∶ ind α , ∙)
+
+_-X:_ : (S : Sig Δ) → Spine (indAlg S) → Tm ([ δ ∷ Δ ] ⇒ U)
+S -X: (X , _) = X
+
+_-α:_ : ∀ (S : Sig Δ) → (γ : Spine (indAlg S)) → Spine (alg S (λ δ → El (apps (S -X: γ) δ)))
+S -α: (X , ακ) with split {Δ = alg S (λ δ → El (apps X δ))} ακ
+... | (α , κ) = α
+
+_-κ:-_ : (S : Sig Δ) → (γ : Spine (indAlg S)) → Tm (ind {S = S} (S -α: γ))
+S -κ:- (X , ακ) with split {Δ = alg S (λ δ → El (apps X δ))} ακ
+... | (_ , κ , []) = κ
+  
+record DataTT-displayed-model : Set1 where
+  field
+    -- Type interpretation
+    Ty∙ : Ty → Set
+    Tm∙ : Ty∙ A → Tm A → Set
+    
+    -- Universe
+    U∙ : Ty∙ U
+    El∙ : (t : Tm U) → Tm∙ U∙ t → Ty∙ (El t)
+    
+    -- Unit type
+    ⊤∙ : Ty∙ ⊤
+    tt∙ : Tm∙ ⊤∙ tt
+    
+    -- Dependent function type (Π)
+    Π∙ : (A∙ : Ty∙ A) → ((a : Tm A) → Tm∙ A∙ a → Ty∙ (B a)) → Ty∙ (Π A B)
+    lam∙ : {A∙ : Ty∙ A} → {B∙ : (a : Tm A) → Tm∙ A∙ a → Ty∙ (B a)}
+          → (f : (a : Tm A) → Tm (B a))
+          → ((a : Tm A) → (a∙ : Tm∙ A∙ a) → Tm∙ (B∙ a a∙) (f a))
+          → Tm∙ (Π∙ A∙ B∙) (lam f)
+    app∙ : {A∙ : Ty∙ A} → {B∙ : (a : Tm A) → Tm∙ A∙ a → Ty∙ (B a)}
+          → {f : Tm (Π A B)} → Tm∙ (Π∙ A∙ B∙) f
+          → (a : Tm A) → (a∙ : Tm∙ A∙ a)
+          → Tm∙ (B∙ a a∙) (app f a)
+    
+    -- Dependent pair type (Σ)
+    Σ∙ : (A∙ : Ty∙ A) → ((a : Tm A) → Tm∙ A∙ a → Ty∙ (B a)) → Ty∙ (Σ A B)
+    pair∙ : {A∙ : Ty∙ A} → {B∙ : (a : Tm A) → Tm∙ A∙ a → Ty∙ (B a)}
+           → {a : Tm A} → (a∙ : Tm∙ A∙ a)
+           → {b : Tm (B a)} → (b∙ : Tm∙ (B∙ a a∙) b)
+           → Tm∙ (Σ∙ A∙ B∙) (pair a b)
+    fst∙ : {A∙ : Ty∙ A} → {B∙ : (a : Tm A) → Tm∙ A∙ a → Ty∙ (B a)}
+          → {p : Tm (Σ A B)} → (p∙ : Tm∙ (Σ∙ A∙ B∙) p)
+          → Tm∙ A∙ (fst p)
+    snd∙ : {A∙ : Ty∙ A} → {B∙ : (a : Tm A) → Tm∙ A∙ a → Ty∙ (B a)}
+          → {p : Tm (Σ A B)} → (p∙ : Tm∙ (Σ∙ A∙ B∙) p)
+          → Tm∙ (B∙ (fst p) (fst∙ p∙)) (snd p)
+    
+    -- Identity type
+    Id∙ : {A∙ : Ty∙ A} → {a b : Tm A} 
+         → Tm∙ A∙ a → Tm∙ A∙ b 
+         → Ty∙ (Id a b)
+    refl∙ : {A∙ : Ty∙ A} → {a : Tm A} → (a∙ : Tm∙ A∙ a)
+           → Tm∙ (Id∙ a∙ a∙) refl
+    J∙ : {A∙ : Ty∙ A}
+        → (P : (a : Tm A) → (b : Tm A) → Tm (Id a b) → Ty)
+        → (P∙ : (a : Tm A) → (a∙ : Tm∙ A∙ a)
+                → (b : Tm A) → (b∙ : Tm∙ A∙ b)
+                → (p : Tm (Id a b)) → (p∙ : Tm∙ (Id∙ a∙ b∙) p)
+                → Ty∙ (P a b p))
+        → (reflP : (a : Tm A) → Tm (P a a refl))
+        → ((a : Tm A) → (a∙ : Tm∙ A∙ a) → Tm∙ (P∙ a a∙ a a∙ refl (refl∙ a∙)) (J P reflP refl))
+        → {a : Tm A} → (a∙ : Tm∙ A∙ a)
+        → {b : Tm A} → (b∙ : Tm∙ A∙ b)
+        → {p : Tm (Id a b)} → (p∙ : Tm∙ (Id∙ a∙ b∙) p)
+        → Tm∙ (P∙ a a∙ b b∙ p p∙) (J P reflP p)
+        
+record DataTT-section (m : DataTT-displayed-model) : Set1 where
+  open DataTT-displayed-model m
+  field
+    σTy : (A : Ty) → Ty∙ A
+    σTm : (A : Ty) → (t : Tm A) → Tm∙ (σTy A) t
+        
+open DataTT-displayed-model
+open DataTT-section 
+
+{-# TERMINATING #-}
+DataTT-induction : (m : DataTT-displayed-model) → DataTT-section m
+DataTT-induction m .σTy U = m .U∙
+DataTT-induction m .σTy (El t) = m .El∙ t (DataTT-induction m .σTm U t)
+DataTT-induction m .σTy (Π A B) = m .Π∙ (DataTT-induction m .σTy A) (λ a a' → DataTT-induction m .σTy (B a))
+DataTT-induction m .σTy (Σ A B) = m .Σ∙ (DataTT-induction m .σTy A) (λ a a' → DataTT-induction m .σTy (B a))
+DataTT-induction m .σTy (Id a b) = m .Id∙ (DataTT-induction m .σTm _ a) (DataTT-induction m .σTm _ b)
+DataTT-induction m .σTy ⊤ = m .⊤∙

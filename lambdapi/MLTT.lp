@@ -1,56 +1,33 @@
 // Sorts
 
 constant symbol Ty : TYPE;
-
 constant symbol Tm : Ty → TYPE;
-
-// constant symbol Tel : TYPE;
-
-// constant symbol Spine : Tel → TYPE;
 
 // Types
 
 constant symbol U : Ty;
 
-injective symbol El : Tm U → Ty;
+injective symbol El : (Tm U) → Ty;
 
-constant symbol Π' (A : Ty) (B : Tm A → Ty) : Ty;
+constant symbol Π' (A : Ty) (B : (Tm A) → Ty) : Ty;
 
 notation Π' quantifier;
 
-constant symbol = [A : Ty] (a : Tm A) (b : Tm A) : Ty;
+constant symbol = [A : Ty] (a : (Tm A)) (b : (Tm A)) : Ty;
 
 notation = infix left 10;
 
 constant symbol ⊤ : Ty;
 
-constant symbol Σ' (A : Ty) (B : Tm A → Ty) : Ty;
+constant symbol Σ' (A : Ty) (B : (Tm A) → Ty) : Ty;
 
 notation Σ' quantifier;
 
-// // Telescopes
+symbol lam [A B] (x : Π a : (Tm A) , (Tm (B a))) : (Tm (Π' A B));
 
-// constant symbol ∙ : Tel;
+symbol app [A B] (f : (Tm (Π' A B))) (x : (Tm A)) : (Tm (B x));
 
-// constant symbol ▷ (A : Ty) (Δ : Tm A → Tel) : Tel;
-
-// notation ▷ infix right 10;
-
-// // Spines
-
-// constant symbol  ̇ : Spine ∙;
-
-// constant symbol ⊳ [A Δ] : Π a : Tm A , Spine (Δ a) → Spine (A ▷ Δ);
-
-// notation ⊳ quantifier;
-
-// Terms
-
-symbol lam [A B] (x : Π a : Tm A , Tm (B a)) : Tm (Π' A B);
-
-symbol app [A B] (f : Tm (Π' A B)) (x : Tm A) : Tm (B x);
-
-constant symbol refl [A] (a : Tm A) : Tm (a = a);
+constant symbol refl [A] (a : (Tm A)) : (Tm (a = a));
 
 symbol J [A]
   [P : Π a : Tm A , Π b : Tm A , Π p : Tm (a = b) , Ty]
@@ -88,4 +65,15 @@ rule pair [$A] [$B] (fst $p) (snd [$A] [$B] $p) ↪ $p;
 rule J $reflP $a $a (refl $a) ↪ $reflP $a;
 
 
+
+// Motive and methods
+
+  // (TyM : SORT)
+  // (TmM : EL TyM → SORT)
+  // (UM : EL TyM)
+  // (ElM : EL (TmM UM) → EL TyM)
+  // (ΠM : Π A : EL TyM , (EL (TmM A) → EL TyM) → EL TyM)
+  // (=M : Π A : EL TyM , EL (TmM A) → EL (TmM A) → EL TyM)
+  // (⊤M : EL TyM)
+  // (ΣM : Π A : EL TyM , (EL (TmM A) → EL TyM) → EL TyM)
 

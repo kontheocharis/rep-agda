@@ -23,5 +23,6 @@ rule RTy ((D.=) [$A] $a  $b) ↪ (M.=) (RTm $a) (RTm $b);
 
 rule RTy (D.Π' $A (λ x, $B.[x])) ↪ M.Π' (RTy $A) (λ x, RTy ($B.[RTm' x]));
 
+rule RTy (D.Σ' $A (λ x, $B.[x])) ↪ M.Σ' (RTy $A) (λ x, RTy ($B.[RTm' x]));
 
-
+rule RTm (D.lam (λ x, $f.[])) ↪ M.lam (λ x, RTm ($f.[]));
