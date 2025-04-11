@@ -50,7 +50,12 @@ R M .T-Data .Data S γ δ =
 R M .T-Data .ctor {S = S} {γ = γ} o v =
   let alg-element-for-o = at (M .T-MLTT) o (_-α:_ (M .T-MLTT) S γ) in
   (apps (M .T-MLTT .T-Π) alg-element-for-o v)
-R M .T-Data .elim = {!   !}
+R M .T-Data .elim {S = S} {γ = γ} P β δx = 
+  let alg-induction = _-κ:_ (M .T-MLTT) S γ in
+  let code-P = lams (M .T-MLTT .T-Π) (λ δx → (M .T-MLTT .T-U .code) (P δx)) in
+  let induction-on-P = M .T-MLTT .T-Π .app alg-induction code-P in
+  let section = apps (M .T-MLTT .T-Π) {!   !} {!   !} in
+  {!   !}
 R M .T-Data .Data-β = {!   !}
 
 -- TODO: repr on data
