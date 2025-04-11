@@ -11,16 +11,16 @@ open import Relation.Binary.PropositionalEquality.Core using (_≡_; refl; subst
 open import Data.Product.Base using (_,_) renaming (Σ to Pair)
 
 record Data-structure (T : TT)
-  {{T-U : U-structure T}}
-  {{T-Π : Π-structure T}} 
-  {{T-Σ : Σ-structure T}}
-  {{T-Id : Id-structure T}}
-  {{T-⊤ : ⊤-structure T}} : Set1
+  (T-U : U-structure T)
+  (T-Π : Π-structure T)
+  (T-Σ : Σ-structure T)
+  (T-Id : Id-structure T)
+  (T-⊤ : ⊤-structure T) : Set1
   where
   open TT T
   open Tel-construction T
   open Π-structure T-Π
-  open Sig-construction T
+  open Sig-construction T T-U T-Π T-Σ T-Id T-⊤
 
   field
     Data : ∀ {Δ} → (S : Sig Δ) → Spine (ind-alg S) → Spine Δ → Ty

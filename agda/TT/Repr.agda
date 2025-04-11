@@ -21,8 +21,8 @@ record Repr-structure (T : TT) : Set1 where
     
     
 record Repr-compat-Π (T : TT)
-  {{T-R : Repr-structure T}}
-  {{T-Π : Π-structure T}} : Set1 where
+  (T-R : Repr-structure T)
+  (T-Π : Π-structure T) : Set1 where
   open TT T
   open Repr-structure T-R
   open Π-structure T-Π
@@ -42,8 +42,8 @@ record Repr-compat-Π (T : TT)
       → unrepr ((app (coe-Tm Repr-Π f) a)) ≡ app (unrepr f) a
     
 record Repr-compat-Σ (T : TT)
-  {{T-R : Repr-structure T}}
-  {{T-Σ : Σ-structure T}} : Set1 where
+  (T-R : Repr-structure T)
+  (T-Σ : Σ-structure T) : Set1 where
   open TT T
   open Repr-structure T-R
   open Σ-structure T-Σ
@@ -75,8 +75,8 @@ record Repr-compat-Σ (T : TT)
           ≡ pair {A = A} {B = B} (unrepr a) (unrepr b) 
           
 record Repr-compat-⊤ (T : TT)
-  {{T-R : Repr-structure T}}
-  {{T-⊤ : ⊤-structure T}} : Set1 where
+  (T-R : Repr-structure T)
+  (T-⊤ : ⊤-structure T) : Set1 where
   open TT T
   open Repr-structure T-R
   open ⊤-structure T-⊤
@@ -87,8 +87,8 @@ record Repr-compat-⊤ (T : TT)
     unrepr-tt : unrepr (coe-Tm (sym Repr-⊤) tt) ≡ tt
     
 record Repr-compat-Id (T : TT)
-  {{T-R : Repr-structure T}}
-  {{T-Id : Id-structure T}} : Set1 where
+  (T-R : Repr-structure T)
+  (T-Id : Id-structure T) : Set1 where
   open TT T
   open Repr-structure T-R
   open Id-structure T-Id

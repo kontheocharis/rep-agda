@@ -97,7 +97,7 @@ record Σ-structure (T : TT) : Set1 where
   syntax Σ A (λ x → B) = [ x ∶ A ] × B
 
 
-module Σs-notation (T : TT) {{T-Σ : Σ-structure T}} {{T-⊤ : ⊤-structure T}} where
+module Σs-notation (T : TT) (T-Σ : Σ-structure T) (T-⊤ : ⊤-structure T) where
   open TT T
   open Σ-structure T-Σ
   open ⊤-structure T-⊤

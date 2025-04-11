@@ -10,11 +10,11 @@ open import Data.Product.Base using (_,_) renaming (Σ to Pair)
  
 
 module Sig-construction (T : TT)
-  {{T-U : U-structure T}}
-  {{T-Π : Π-structure T}}
-  {{T-Σ : Σ-structure T}}
-  {{T-Id : Id-structure T}}
-  {{T-⊤ : ⊤-structure T}} 
+  (T-U : U-structure T)
+  (T-Π : Π-structure T)
+  (T-Σ : Σ-structure T)
+  (T-Id : Id-structure T)
+  (T-⊤ : ⊤-structure T)
   where
 
   open TT T
@@ -24,7 +24,7 @@ module Sig-construction (T : TT)
   open Σ-structure T-Σ
   open Id-structure T-Id
   open ⊤-structure T-⊤
-  open Σs-notation T
+  open Σs-notation T T-Σ T-⊤
 
   data Op : Tel → Set
 
