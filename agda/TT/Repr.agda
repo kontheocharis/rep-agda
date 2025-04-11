@@ -1,6 +1,9 @@
 {-# OPTIONS --prop #-}
 module TT.Repr where
 
+open import Relation.Binary.PropositionalEquality.Core using (_≡_; refl; subst; sym; cong)
+
+open import Utils
 open import TT.Core
 open import TT.Base
 
@@ -12,8 +15,8 @@ record Repr-structure (T : TT) : Set1 where
     repr : ∀ {A} → Tm A → Tm (Repr A)
     unrepr : ∀ {A} → Tm (Repr A) → Tm A
 
-    Repr-η-1 : ∀ {A} {t : Tm A} → Tm~ refl-Ty (unrepr (repr t)) t
-    Repr-η-2 : ∀ {A} {t : Tm (Repr A)} → Tm~ refl-Ty (repr (unrepr t)) t
+    Repr-η-1 : ∀ {A} {t : Tm A} → unrepr (repr t) ≡ t
+    Repr-η-2 : ∀ {A} {t : Tm (Repr A)} → repr (unrepr t) ≡ t
     
     
 record Repr-compat-Π (T : TT) (T-Π : Π-structure T) (T-R : Repr-structure T) : Set1 where
@@ -22,13 +25,13 @@ record Repr-compat-Π (T : TT) (T-Π : Π-structure T) (T-R : Repr-structure T) 
   open Repr-structure T-R
 
   field
-    Repr-Π : ∀ {A} {B : Tm A → Ty} → Ty~ (Repr (Π A B)) (Π A (λ a → Repr (B a)))
+    Repr-Π : ∀ {A} {B : Tm A → Ty} → Repr (Π A B) ≡ Π A (λ a → Repr (B a))
     repr-lam : ∀ {A} {B : Tm A → Ty} {f : (a : Tm A) → Tm (B a)}
-      → Tm~ Repr-Π (repr (lam f)) (lam (λ a → repr (f a)))
+      → repr (lam f) ≡ lam (λ a → repr (f a)) by (cong Tm Repr-Π)
     unrepr-lam : ∀ {A} {B : Tm A → Ty} {f : (a : Tm A) → Tm (Repr (B a))}
-      → Tm~ refl-Ty (unrepr (coe (sym-Ty Repr-Π) (lam f))) (lam (λ a → unrepr (f a)))
+      → unrepr (coe-Tm (sym Repr-Π) (lam f)) ≡ lam (λ a → unrepr (f a))
       
     repr-app : ∀ {A} {B : Tm A → Ty} {f : Tm (Π A B)} {a : Tm A}
-      → Tm~ refl-Ty (repr (app f a)) (app (coe Repr-Π (repr f)) a)
+      → repr (app f a) ≡ app (coe-Tm Repr-Π (repr f)) a
     unrepr-app : ∀ {A} {B : Tm A → Ty} {f : Tm (Repr (Π A B))} {a : Tm A}
-      → Tm~ refl-Ty (unrepr ((app (coe Repr-Π f) a))) (app (unrepr f) a)
+      → unrepr ((app (coe-Tm Repr-Π f) a)) ≡ app (unrepr f) a

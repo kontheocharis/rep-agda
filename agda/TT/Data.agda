@@ -7,7 +7,7 @@ open import TT.Base
 open import TT.Tel 
 open import TT.Sig
 
-open import Relation.Binary.PropositionalEquality.Core using (_≡_; refl; subst; sym)
+open import Relation.Binary.PropositionalEquality.Core using (_≡_; refl; subst; sym; cong)
 open import Data.Product.Base using (_,_) renaming (Σ to Pair)
 
 record Data-structure (T : TT)
@@ -37,16 +37,13 @@ record Data-structure (T : TT)
     Data-β : ∀ {Δ} {S : Sig Δ} {O γ} → (M : Spine (Δ ▷ Data S γ) → Ty)
       → (β : Spine (disp-alg (ctors S γ) M))
       → (o : O ∈ S) → (v : Spine (input O (Data S γ))) 
-      → Tm~ (sym-Ty (lift-Ty (sec-coh-Ty (elim M β) O _ _)))
-        (elim M β (output v ⨾ apps (at o (ctors S γ)) v)) (apps (at o β) (elim M β $ v))
-  
+      → elim M β (output v ⨾ apps (at o (ctors S γ)) v) ≡ apps (at o β) (elim M β $ v)
+        by (cong Tm (sym (sec-coh-Ty (elim M β) O _ _)))
+
   ctors-at-ctor : ∀ {Δ} {O : Op Δ} {S γ} → (o : O ∈ S) → (v : Spine (input O (Data S γ)))
-    → Tm~ refl-Ty (apps (at o (ctors S γ)) v) (ctor o v)
-  ctors-at-ctor {Δ} {O} {S} {γ} o v =
-    substProp
-      {a = lams (ctor o)}
-      {a' = at o (ctors S γ)}
-      (λ t → Tm~ refl-Ty (apps t v) (ctor o v))
-      (Πs-β {B~ = {!   !}} {f = ctor o})
+    → apps (at o (ctors S γ)) v ≡ ctor o v
+  ctors-at-ctor {Δ} {O} {S} {γ} o v = subst
+      (λ t → apps t v ≡ ctor o v)
       (sym (sig-spine-at o))
+      (Πs-β {f = ctor o})
   

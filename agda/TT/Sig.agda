@@ -111,7 +111,7 @@ module Sig-construction (T : TT)
   coh {S = ε} [] σ = ∙
   coh {X = X} {S = (O ◁ S)} {α = αO , α} (βO , β) σ =
     _ ∶ [ v ∷ input O X ]
-      ⇒ Id (σ (output v ⨾ apps αO v)) (transp-Ty (sec-coh-Ty σ O v αO) (apps βO (σ $ v)))
+      ⇒ Id (σ (output v ⨾ apps αO v)) (coe-Tm (sec-coh-Ty σ O v αO) (apps βO (σ $ v)))
     , coh β σ
 
   ind : {S : Sig Δ} → (α : Spine (alg S X)) → Ty
