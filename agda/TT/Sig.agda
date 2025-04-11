@@ -10,15 +10,12 @@ open import Data.Product.Base using (_,_) renaming (Σ to Pair)
  
 
 module Sig-construction (T : TT)
-  (T-U : U-structure T)
-  (T-Π : Π-structure T)
-  (T-Σ : Σ-structure T)
-  (T-Id : Id-structure T)
-  (T-⊤ : ⊤-structure T)
+  (T-MLTT : MLTT-structure T)
   where
 
   open TT T
   open Tel-construction T
+  open MLTT-structure T-MLTT
   open U-structure T-U
   open Π-structure T-Π
   open Σ-structure T-Σ
@@ -133,3 +130,5 @@ module Sig-construction (T : TT)
   _-κ:-_ : (S : Sig Δ) → (γ : Spine (ind-alg S)) → Tm (ind {S = S} (S -α: γ))
   S -κ:- (X , ακ) with split {Δ = alg S (λ δ → El (apps X δ))} ακ
   ... | (_ , κ , []) = κ
+
+  infix  4 _-X:_ _-α:_ _-κ:-_

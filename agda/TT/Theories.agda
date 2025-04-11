@@ -13,22 +13,18 @@ open import TT.Sig
 record MLTT : Set1 where
   field
     T : TT
-    T-U : U-structure T
-    T-Π : Π-structure T
-    T-Σ : Σ-structure T
-    T-Id : Id-structure T
-    T-⊤ : ⊤-structure T
+    T-MLTT : MLTT-structure T
     
 -- The type of DataTT models
 record DataTT : Set1 where
   field
     T : TT
-    T-U : U-structure T
-    T-Π : Π-structure T
-    T-Σ : Σ-structure T
-    T-Id : Id-structure T
-    T-⊤ : ⊤-structure T
-    T-Data : Data-structure T T-U T-Π T-Σ T-Id T-⊤
+    T-MLTT : MLTT-structure T
+    T-Data : Data-structure T T-MLTT
+
+  open MLTT-structure T-MLTT
+
+  field
     T-R : Repr-structure T
     T-RΠ : Repr-compat-Π T T-R T-Π
     T-RΣ : Repr-compat-Σ T T-R T-Σ

@@ -121,3 +121,10 @@ record Id-structure (T : TT) : Set1 where
     Id-β : ∀ {A} {P} {a} {r : (a : Tm A) → Tm (P a a (rfl a))}
       → J P r (rfl a) ≡ r a
   
+record MLTT-structure (T : TT) : Set1 where
+  field
+    T-U : U-structure T
+    T-Π : Π-structure T
+    T-Σ : Σ-structure T
+    T-Id : Id-structure T
+    T-⊤ : ⊤-structure T

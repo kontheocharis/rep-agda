@@ -17,8 +17,9 @@ open Σ-structure
 open Id-structure
 open ⊤-structure
 open Data-structure
-open Tel-construction
-open Sig-construction
+open MLTT-structure
+open Tel-construction {{...}}
+open Sig-construction {{...}}
 open Repr-structure
 open Repr-compat-Π
 open Repr-compat-Σ
@@ -36,14 +37,10 @@ R : MLTT → DataTT
 
 -- Base structure is the same
 R M .T = M .T
-R M .T-U = M .T-U
-R M .T-Π = M .T-Π
-R M .T-Σ = M .T-Σ
-R M .T-Id = M .T-Id
-R M .T-⊤ = M .T-⊤
+R M .T-MLTT = M .T-MLTT
 
 -- Need to translate Data and Repr structures
-R M .T-Data .Data = {!   !}
+R M .T-Data .Data S γ δ = M .T-MLTT .T-U .El (apps (M .T-MLTT .T-Π) (?) ?)
 R M .T-Data .ctor = {!   !}
 R M .T-Data .elim = {!   !}
 R M .T-Data .Data-β = {!   !}
