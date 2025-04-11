@@ -47,6 +47,6 @@ record Data-structure (T : TT)
       {a = lams (ctor o)}
       {a' = at o (ctors S γ)}
       (λ t → Tm~ refl-Ty (apps t v) (ctor o v))
-      (Πs-β {f = ctor o})
+      (Πs-β {B~ = {!   !}} {f = ctor o})
       (sym (sig-spine-at o))
   

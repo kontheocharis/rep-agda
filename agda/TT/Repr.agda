@@ -1,5 +1,7 @@
+{-# OPTIONS --prop #-}
 module TT.Repr where
 
+open import TT.Core
 open import TT.Base
 
 record Repr-structure (T : TT) : Set1 where
