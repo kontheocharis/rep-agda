@@ -26,8 +26,8 @@ module Sig-construction {T : TT} (T-MLTT : MLTT-structure T) where
   data Sig : Tel → Set
 
   data Sig where
-    ε : Sig Δ
-    _◁_ : Op Δ → Sig Δ → Sig Δ
+    ε : ∀ {Δ} → Sig Δ
+    _◁_ : ∀ {Δ} → Op Δ → Sig Δ → Sig Δ
     
   data Op where
     Πext : (A : Ty) → (Tm A → Op Δ) → Op Δ
@@ -66,7 +66,7 @@ module Sig-construction {T : TT} (T-MLTT : MLTT-structure T) where
   input (Πι δ O') X = _ ∶ X δ , input O' X
   input (ι δ) X = ∙
 
-  output : {O : Op Δ} → Spine (input O X) → Spine Δ
+  output : ∀ {X} → {O : Op Δ} → Spine (input O X) → Spine Δ
   output {O = Πext A O'} (a , ν) = output ν
   output {O = Πι δ O'} (x , ν) = output ν
   output {O = ι δ} [] = δ
@@ -79,12 +79,12 @@ module Sig-construction {T : TT} (T-MLTT : MLTT-structure T) where
   disp-input {X = X} (Πι δ O') Y = x ∶ X δ , _ ∶ Y (δ ⨾ x) , disp-input O' Y
   disp-input {X = X} (ι δ) Y = ∙
 
-  disp-output : ∀ {Y} → {O : Op Δ} → Spine (disp-input {X = X} O Y) → Spine (alg (O ◁ ε) X) → Spine (Δ ▷ X)
+  disp-output : ∀ {X Y} → {O : Op Δ} → Spine (disp-input {X = X} O Y) → Spine (alg (O ◁ ε) X) → Spine (Δ ▷ X)
   disp-output {Y = Y} {O = Πext A O'} (a , μ) (α , []) = disp-output μ (app α a , [])
   disp-output {Y = Y} {O = Πι δ O'} (x , y , μ) (α , []) = disp-output μ (app α x , [])
   disp-output {Y = Y} {O = ι δ} [] (α , []) = (δ ⨾ α)
 
-  disp-alg : {S : Sig Δ} → Spine (alg S X) → (Spine (Δ ▷ X) → Ty) → Tel
+  disp-alg : ∀ {X} {S : Sig Δ} → Spine (alg S X) → (Spine (Δ ▷ X) → Ty) → Tel
   disp-alg {S = S} α Y = sig-tel S (λ {O} o → [ μ ∷ disp-input O Y ] ⇒ Y (disp-output μ (at o α , [])))
 
   Sec : (Y : Spine Δ → Ty) → Set
@@ -114,17 +114,23 @@ module Sig-construction {T : TT} (T-MLTT : MLTT-structure T) where
     [ Y ∶ [ _ ∷ Δ ▷ X ] ⇒ U ]
     ⇒ [ β ∷ disp-alg α (λ δx → El (apps Y δx)) ]
     ⇒ Σs (σ ∶ [ δx ∷ Δ ▷ X ] ⇒ El (apps Y δx) , coh β (apps σ))
+    
+  record IndAlg {Δ : Tel} (S : Sig Δ) : Set where
+    field
+      Carrier : Tm ([ δ ∷ Δ ] ⇒ U)
+      algebra : Spine (alg S (λ δ → El (apps Carrier δ)))
+      induction : Tm (ind algebra)
 
-  ind-alg : (S : Sig Δ) → Tel
-  ind-alg {Δ = Δ} S = (X ∶ [ δ ∷ Δ ] ⇒ U , α ∷ alg S (λ δ → El (apps X δ)) , κ ∶ ind α , ∙)
+  -- ind-alg : (S : Sig Δ) → Tel
+  -- ind-alg {Δ = Δ} S = (X ∶ [ δ ∷ Δ ] ⇒ U , α ∷ alg S (λ δ → El (apps X δ)) , κ ∶ ind α , ∙)
 
-  get-carrier : (S : Sig Δ) → Spine (ind-alg S) → Tm ([ δ ∷ Δ ] ⇒ U)
-  get-carrier S (X , _) = X
+  -- get-carrier : (S : Sig Δ) → Spine (ind-alg S) → Tm ([ δ ∷ Δ ] ⇒ U)
+  -- get-carrier S (X , _) = X
 
-  get-alg : ∀ (S : Sig Δ) → (γ : Spine (ind-alg S)) → Spine (alg S (λ δ → El (apps (get-carrier S γ) δ)))
-  get-alg S (X , ακ) with split {Δ = alg S (λ δ → El (apps X δ))} ακ
-  ... | (α , κ) = α
+  -- get-alg : ∀ (S : Sig Δ) → (γ : Spine (ind-alg S)) → Spine (alg S (λ δ → El (apps (get-carrier S γ) δ)))
+  -- get-alg S (X , ακ) with split {Δ = alg S (λ δ → El (apps X δ))} ακ
+  -- ... | (α , κ) = α
 
-  get-ind : (S : Sig Δ) → (γ : Spine (ind-alg S)) → Tm (ind {S = S} (get-alg S γ))
-  get-ind S (X , ακ) with split {Δ = alg S (λ δ → El (apps X δ))} ακ
-  ... | (_ , κ , []) = κ
+  -- get-ind : (S : Sig Δ) → (γ : Spine (ind-alg S)) → Tm (ind {S = S} (get-alg S γ))
+  -- get-ind S (X , ακ) with split {Δ = alg S (λ δ → El (apps X δ))} ακ
+  -- ... | (_ , κ , []) = κ

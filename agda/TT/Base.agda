@@ -46,11 +46,11 @@ record Π-structure (T : TT) : Set1 where
 
   syntax Πs Δ (λ δ → B) = [ δ ∷ Δ ] ⇒ B
 
-  lams : ((δ : Spine Δ) → Tm (Y δ)) → Tm (Πs Δ Y)
+  lams : ∀ {Δ Y} → ((δ : Spine Δ) → Tm (Y δ)) → Tm (Πs Δ Y)
   lams {Δ = ∙} f = f []
   lams {Δ = ext A Δ} f = lam (λ a → lams (λ δ → f (a , δ)))
 
-  apps : Tm (Πs Δ Y) → (δ : Spine Δ) → Tm (Y δ)
+  apps : ∀ {Δ Y} → Tm (Πs Δ Y) → (δ : Spine Δ) → Tm (Y δ)
   apps {Δ = ∙} t [] = t
   apps {Δ = ext A Δ} t (a , δ) = apps (app t a) δ
 
