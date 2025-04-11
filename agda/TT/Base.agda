@@ -1,4 +1,4 @@
-{-# OPTIONS --prop --allow-unsolved-metas #-}
+{-# OPTIONS --prop #-}
 module TT.Base where
 
 open import TT.Core
