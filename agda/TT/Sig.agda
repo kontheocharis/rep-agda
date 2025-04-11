@@ -118,15 +118,13 @@ module Sig-construction {T : TT} (T-MLTT : MLTT-structure T) where
   ind-alg : (S : Sig Δ) → Tel
   ind-alg {Δ = Δ} S = (X ∶ [ δ ∷ Δ ] ⇒ U , α ∷ alg S (λ δ → El (apps X δ)) , κ ∶ ind α , ∙)
 
-  _-X:_ : (S : Sig Δ) → Spine (ind-alg S) → Tm ([ δ ∷ Δ ] ⇒ U)
-  S -X: (X , _) = X
+  get-carrier : (S : Sig Δ) → Spine (ind-alg S) → Tm ([ δ ∷ Δ ] ⇒ U)
+  get-carrier S (X , _) = X
 
-  _-α:_ : ∀ (S : Sig Δ) → (γ : Spine (ind-alg S)) → Spine (alg S (λ δ → El (apps (S -X: γ) δ)))
-  S -α: (X , ακ) with split {Δ = alg S (λ δ → El (apps X δ))} ακ
+  get-alg : ∀ (S : Sig Δ) → (γ : Spine (ind-alg S)) → Spine (alg S (λ δ → El (apps (get-carrier S γ) δ)))
+  get-alg S (X , ακ) with split {Δ = alg S (λ δ → El (apps X δ))} ακ
   ... | (α , κ) = α
 
-  _-κ:_ : (S : Sig Δ) → (γ : Spine (ind-alg S)) → Tm (ind {S = S} (S -α: γ))
-  S -κ: (X , ακ) with split {Δ = alg S (λ δ → El (apps X δ))} ακ
+  get-ind : (S : Sig Δ) → (γ : Spine (ind-alg S)) → Tm (ind {S = S} (get-alg S γ))
+  get-ind S (X , ακ) with split {Δ = alg S (λ δ → El (apps X δ))} ακ
   ... | (_ , κ , []) = κ
-
-  infix  4 _-X:_ _-α:_ _-κ:_
