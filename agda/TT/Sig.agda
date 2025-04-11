@@ -9,9 +9,7 @@ open import Relation.Binary.PropositionalEquality.Core using (_≡_; refl; subst
 open import Data.Product.Base using (_,_) renaming (Σ to Pair)
  
 
-module Sig-construction (T : TT)
-  (T-MLTT : MLTT-structure T)
-  where
+module Sig-construction {T : TT} (T-MLTT : MLTT-structure T) where
 
   open TT T
   open Tel-construction T

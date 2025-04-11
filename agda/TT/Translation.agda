@@ -9,6 +9,8 @@ open import TT.Data
 open import TT.Repr
 open import TT.Sig
 open import TT.Theories
+
+open import Relation.Binary.PropositionalEquality.Core using (_≡_; refl; subst)
     
 open TT
 open U-structure
@@ -18,8 +20,8 @@ open Id-structure
 open ⊤-structure
 open Data-structure
 open MLTT-structure
-open Tel-construction {{...}}
-open Sig-construction {{...}}
+open Tel-construction
+open Sig-construction
 open Repr-structure
 open Repr-compat-Π
 open Repr-compat-Σ
@@ -40,33 +42,43 @@ R M .T = M .T
 R M .T-MLTT = M .T-MLTT
 
 -- Need to translate Data and Repr structures
-R M .T-Data .Data S γ δ = M .T-MLTT .T-U .El (apps (M .T-MLTT .T-Π) (?) ?)
-R M .T-Data .ctor = {!   !}
+
+-- Data is translated by the provided inductive algebras
+R M .T-Data .Data S γ δ =
+  let alg-carrier = _-X:_ (M .T-MLTT) S γ in
+   M .T-MLTT .T-U .El (apps (M .T-MLTT .T-Π) alg-carrier δ)
+R M .T-Data .ctor {S = S} {γ = γ} o v =
+  let alg-element-for-o = at (M .T-MLTT) o (_-α:_ (M .T-MLTT) S γ) in
+  (apps (M .T-MLTT .T-Π) alg-element-for-o v)
 R M .T-Data .elim = {!   !}
 R M .T-Data .Data-β = {!   !}
-R M .T-R .Repr = {!   !}
-R M .T-R .repr = {!   !}
-R M .T-R .unrepr = {!   !}
-R M .T-R .Repr-η-1 = {!   !}
-R M .T-R .Repr-η-2 = {!   !}
-R M .T-RΠ .Repr-Π = {!   !}
-R M .T-RΠ .repr-lam = {!   !}
-R M .T-RΠ .unrepr-lam = {!   !}
-R M .T-RΠ .repr-app = {!   !}
-R M .T-RΠ .unrepr-app = {!   !}
-R M .T-RΣ .Repr-Σ = {!   !}
-R M .T-RΣ .repr-fst = {!   !}
-R M .T-RΣ .unrepr-fst = {!   !}
-R M .T-RΣ .repr-snd = {!   !}
-R M .T-RΣ .unrepr-snd = {!   !}
-R M .T-RΣ .repr-pair = {!   !}
-R M .T-RΣ .unrepr-pair = {!   !}
-R M .T-R⊤ .Repr-⊤ = {!   !}
-R M .T-R⊤ .repr-tt = {!   !}
-R M .T-R⊤ .unrepr-tt = {!   !}
-R M .T-RId .Repr-Id = {!   !}
-R M .T-RId .repr-rfl = {!   !}
-R M .T-RId .unrepr-rfl = {!   !}
-R M .T-RId .repr-J = {!   !}
-R M .T-RId .unrepr-J = {!   !}
+
+-- TODO: repr on data
+
+-- Repr is translated away
+R M .T-R .Repr A = A
+R M .T-R .repr t = t
+R M .T-R .unrepr t = t
+R M .T-R .Repr-η-1 = refl
+R M .T-R .Repr-η-2 = refl
+R M .T-RΠ .Repr-Π = refl
+R M .T-RΠ .repr-lam = refl
+R M .T-RΠ .unrepr-lam = refl
+R M .T-RΠ .repr-app = refl
+R M .T-RΠ .unrepr-app = refl
+R M .T-RΣ .Repr-Σ = refl
+R M .T-RΣ .repr-fst = refl
+R M .T-RΣ .unrepr-fst = refl
+R M .T-RΣ .repr-snd = refl
+R M .T-RΣ .unrepr-snd = refl
+R M .T-RΣ .repr-pair = refl
+R M .T-RΣ .unrepr-pair = refl
+R M .T-R⊤ .Repr-⊤ = refl
+R M .T-R⊤ .repr-tt = refl
+R M .T-R⊤ .unrepr-tt = refl
+R M .T-RId .Repr-Id = refl
+R M .T-RId .repr-rfl = refl
+R M .T-RId .unrepr-rfl = refl
+R M .T-RId .repr-J = refl
+R M .T-RId .unrepr-J = refl
 

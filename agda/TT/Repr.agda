@@ -99,14 +99,14 @@ record Repr-compat-Id (T : TT)
     unrepr-rfl : ∀ {A} {x : Tm (Repr A)} →
       unrepr (coe-Tm (sym (trans Repr-Id (cong₂ Id Repr-η-2 Repr-η-2))) (rfl x)) ≡ rfl (unrepr x) 
 
-    repr-J : {A : Ty}
-        → (P : (a : Tm A) → (b : Tm A) → Tm (Id a b) → Ty)
-        → (r : (a : Tm A) → Tm (P a a (rfl a)))
-        → {a : Tm A} → {b : Tm A} → (p : Tm (Id a b))
+    repr-J : ∀ {A : Ty}
+        → {P : (a : Tm A) → (b : Tm A) → Tm (Id a b) → Ty}
+        → {r : (a : Tm A) → Tm (P a a (rfl a))}
+        → {a : Tm A} → {b : Tm A} → {p : Tm (Id a b)}
         → repr (J P r p) ≡ J (λ a b p → Repr (P a b p)) (λ a → repr (r a)) p
 
     unrepr-J : {A : Ty}
-        → (P : (a : Tm A) → (b : Tm A) → Tm (Id a b) → Ty)
-        → (r : (a : Tm A) → Tm (Repr (P a a (rfl a))))
-        → {a : Tm A} → {b : Tm A} → (p : Tm (Id a b))
+        → {P : (a : Tm A) → (b : Tm A) → Tm (Id a b) → Ty}
+        → {r : (a : Tm A) → Tm (Repr (P a a (rfl a)))}
+        → {a : Tm A} → {b : Tm A} → {p : Tm (Id a b)}
         → unrepr (J (λ a b p → Repr (P a b p)) r p) ≡ J P (λ a → unrepr (r a)) p

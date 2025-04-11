@@ -17,11 +17,11 @@ record Data-structure (T : TT)
   open MLTT-structure T-MLTT
   open Tel-construction T
   open Π-structure T-Π
-  open Sig-construction T T-MLTT
+  open Sig-construction T-MLTT
 
   field
     Data : ∀ {Δ} → (S : Sig Δ) → Spine (ind-alg S) → Spine Δ → Ty
-    ctor : ∀ {Δ} {O : Op Δ} {S γ} → O ∈ S → (v : Spine (input O (Data S γ))) → Tm (Data S γ (output v))
+    ctor : ∀ {Δ} {O : Op Δ} {S} {γ : Spine (ind-alg S)} → O ∈ S → (v : Spine (input O (Data S γ))) → Tm (Data S γ (output v))
 
   ctors : ∀ {Δ} → (S : Sig Δ) → (γ : Spine (ind-alg S)) → Spine (alg S (Data S γ))
   ctors S γ = sig-spine S (λ p → lams (ctor p))
