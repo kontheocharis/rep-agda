@@ -5,7 +5,7 @@ open import TT.Core
 open import TT.Base
 open import TT.Tel 
 
-open import Relation.Binary.PropositionalEquality.Core using (_≡_; refl; subst)
+open import Relation.Binary.PropositionalEquality.Core using (_≡_; refl; subst; cong)
 open import Data.Product.Base using (_,_) renaming (Σ to Pair)
  
 
@@ -53,6 +53,13 @@ module Sig-construction {T : TT} (T-MLTT : MLTT-structure T) where
   at : ∀ {Δ} {S : Sig Δ} {P : ∀ {O} → O ∈ S → Ty} {O} → (o : O ∈ S) → Spine (sig-tel S P) → Tm (P o)
   at {S = O ◁ S} here (αO , _) = αO
   at {S = O ◁ S} (there q) (_ , α) = at q α
+  
+  sig-spine-η : ∀ {Δ S} {Γ : ∀ {O} → O ∈ S → Tel}
+    {Q : ∀ {O} → (o : O ∈ S) → Spine (Γ o) → Ty} {α : Spine (sig-tel {Δ = Δ} S (λ o → [ δ ∷ Γ o ] ⇒ Q o δ))}
+    → sig-spine S {P = λ o → [ δ ∷ Γ o ] ⇒ Q o δ} (λ o → lams (λ v → apps {Δ = Γ o} (at o α) v)) ≡ α
+  sig-spine-η {S = ε} {α = []} = refl
+  sig-spine-η {S = O ◁ S} {Γ = Γ} {Q = Q} {α = (αO , α)} rewrite sig-spine-η {S = S} {Q = λ o → Q (there o)} {α = α}
+    = cong (λ q → (q , α)) (Πs-η {Δ = Γ here})
   
   sig-spine-at : ∀ {Δ} {S : Sig Δ} {P : ∀ {O} → O ∈ S → Ty} {O}
     → (o : O ∈ S)

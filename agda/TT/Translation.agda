@@ -53,24 +53,16 @@ module R (m : MLTT) where
   d .T-Data .ctor {S = S} {γ} o v = apps (at o (γ .algebra)) v
   d .T-Data .elim {Δ = Δ} {S = S} {γ} P β δx = 
     let α = γ .algebra in
-    let alg-induction = γ .induction in
+    let α-induction = γ .induction in
     let code-P = lams (λ δx → code (P δx)) in
-    let induction-on-P = app alg-induction code-P in
-    
-    -- let β-actual : Spine (disp-alg  (sig-spine  S (λ p → lams  (d .T-Data .ctor p))) P)
-    --     β-actual = β in
-
-    let P' = λ δx₁ → El (apps code-P δx₁) in
-    let β' : Spine (disp-alg α P')
-        β' = coe
-              (cong₂ (λ α P → Spine (disp-alg α P)) {y = α} {u = P}
-                {!   !}
+    let induction-on-P = app α-induction code-P in
+    let β-over-α : Spine (disp-alg α (λ δx₁ → El (apps code-P δx₁)))
+        β-over-α = coe (cong₂ (λ α P → Spine (disp-alg α P)) {y = α} {u = P}
+                (sig-spine-η {Γ = λ {O} o → input O _} {α = α})
                 (funext (λ δ → sym (El-apps-lams-code δ)))) β in
-    let section-coh = apps
-          {Δ = disp-alg α (λ δx → El (apps code-P δx))}
-          induction-on-P β' in
+    let section-coh = apps {Δ = disp-alg α (λ δx → El (apps code-P δx))}
+          induction-on-P β-over-α in
     let section = fst section-coh in
-
     coe
       (trans (cong (λ t → Tm (El t)) (Πs-β {f = λ δx → code (P δx)})) (cong Tm U-η-1))
       (apps section δx)
