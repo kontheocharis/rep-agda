@@ -7,6 +7,7 @@ open import Relation.Binary.PropositionalEquality.Core
 open import Utils
 open import TT.Core
 open import TT.Base
+open import TT.Data
 
 record Repr-structure (T : TT) : Set1 where
   open TT T
@@ -18,6 +19,19 @@ record Repr-structure (T : TT) : Set1 where
 
     Repr-η-1 : ∀ {A} {t : Tm A} → unrepr (repr t) ≡ t
     Repr-η-2 : ∀ {A} {t : Tm (Repr A)} → repr (unrepr t) ≡ t
+
+record Repr-Data-structure
+  (T : TT)
+  (T-R : Repr-structure T)
+  (T-MLTT : MLTT-structure T)
+  (T-Data : Data-structure T T-MLTT) : Set1 where
+  open TT T
+  open Repr-structure T-R
+  open MLTT-structure T-MLTT
+  open Data-structure T-Data
+  field
+    repr-Data : ∀ {Δ S γ δ} → Repr (Data {Δ = Δ} S γ δ) ≡ El (apps (γ .Carrier) δ)
+    -- repr-ctor : ∀ {γ o v} → Id (repr (ctor o v)) (apps (at o (γ .algebra)) v)
     
     
 record Repr-compat-Π (T : TT)

@@ -5,10 +5,6 @@ open import Utils
 open import TT.Core
 open import TT.Tel
 open import TT.Base
-open import TT.Data
-open import TT.Repr
-open import TT.Sig
-open import TT.Theories
 
 open import Relation.Binary.PropositionalEquality.Core using (_≡_; refl; subst; cong; cong₂; trans; sym)
 

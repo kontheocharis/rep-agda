@@ -106,6 +106,10 @@ module Σs-notation (T : TT) (T-Σ : Σ-structure T) (T-⊤ : ⊤-structure T) w
   Σs : Tel → Ty
   Σs ∙ = ⊤
   Σs (ext A Δ) = Σ A (λ a → Σs (Δ a))
+  
+  get-spine : Tm (Σs Δ) → Spine Δ
+  get-spine {Δ = ∙} tt = []
+  get-spine {Δ = ext A Δ} q = fst q , get-spine (snd q)
 
     
 record Id-structure (T : TT) : Set1 where
@@ -120,6 +124,12 @@ record Id-structure (T : TT) : Set1 where
         → Tm (P a b p)
     Id-β : ∀ {A} {P} {a} {r : (a : Tm A) → Tm (P a a (rfl a))}
       → J P r (rfl a) ≡ r a
+      
+record Id-extensional (T : TT) (T-Id : Id-structure T) : Set1 where
+  open TT T
+  open Id-structure T-Id
+  field
+    reflect : ∀ {A} {x y : Tm A} → Tm (Id x y) → x ≡ y
   
 record MLTT-structure (T : TT) : Set1 where
   field
@@ -128,3 +138,12 @@ record MLTT-structure (T : TT) : Set1 where
     T-Σ : Σ-structure T
     T-Id : Id-structure T
     T-⊤ : ⊤-structure T
+
+  open U-structure T-U public
+  open Π-structure T-Π public
+  open Σ-structure T-Σ public
+  open Id-structure T-Id public
+  open ⊤-structure T-⊤ public
+
+  open Tel-construction T public
+  open Σs-notation T T-Σ T-⊤ public
