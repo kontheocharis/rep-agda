@@ -22,8 +22,11 @@ record Data-structure (T : TT)
     Data : ∀ {Δ} → (S : Sig Δ) → IndAlg S → Spine Δ → Ty
     ctor : ∀ {Δ} {O : Op Δ} {S} {γ : IndAlg S} → O ∈ S → (v : Spine (input O (Data S γ))) → Tm (Data S γ (output v))
 
-  ctors : ∀ {Δ} → (S : Sig Δ) → (γ : IndAlg S) → Spine (alg S (Data S γ))
-  ctors S γ = sig-spine S (λ p → lams (ctor p))
+    -- Define this as an element of the language rather than
+    -- a function to make Agda happy
+    ctors : ∀ {Δ} → (S : Sig Δ) → (γ : IndAlg S) → Spine (alg S (Data S γ))
+    -- η rule uniquely determines its value:
+    ctors-η : ∀ {Δ} → (S : Sig Δ) → (γ : IndAlg S) → ctors S γ ≡ sig-spine S (λ p → lams (ctor p))
   
   field
     elim : ∀ {Δ} {S : Sig Δ} {γ} → (M : Spine (Δ ▷ Data S γ) → Ty)
@@ -34,12 +37,5 @@ record Data-structure (T : TT)
       → (β : Spine (disp-alg (ctors S γ) M))
       → (o : O ∈ S) → (v : Spine (input O (Data S γ))) 
       → elim M β (output v ⨾ apps (at o (ctors S γ)) v) ≡ (coe-Tm (sec-coh-Ty (elim M β) O _ _) (apps (at o β) (elim M β $ v)))
-
-  ctors-at-ctor : ∀ {Δ} {O : Op Δ} {S γ} → (o : O ∈ S) → (v : Spine (input O (Data S γ)))
-    → apps (at o (ctors S γ)) v ≡ ctor o v
-  ctors-at-ctor {Δ} {O} {S} {γ} o v = subst
-      (λ t → apps t v ≡ ctor o v)
-      (sym (sig-spine-at o))
-      (Πs-β {f = ctor o})
       
   

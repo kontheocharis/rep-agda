@@ -150,12 +150,6 @@ module Sig-construction {T : TT} (T-MLTT : MLTT-structure T) where
     → (β : Spine (disp-alg (γ .algebra) P))
     → {O : Op Δ} → (o : O ∈ S) → (v : Spine (input O ((λ δ → El (apps (γ .Carrier) δ))))) 
     → Tm (Id (apply-ind-sec γ P β (output v ⨾ apps (at o (γ .algebra)) v))
-        ((coe-Tm (sec-coh-Ty (apply-ind-sec γ P β) O _ _) (apps (at o β) (apply-ind-sec γ P β $ v)))))
+        ((coe-Tm (sec-coh-Ty (apply-ind-sec γ P β) O v (at o (γ .algebra))) (apps (at o β) (apply-ind-sec γ P β $ v)))))
   apply-ind-coh {Δ} {S} γ P β o v with (apply-ind γ P β)
   apply-ind-coh {Δ} {S} γ P β o v | (σ , coh) = apps (at o coh) v
-  
-  coe-disp-alg-η : ∀ {Δ} {S : Sig Δ} {γ : IndAlg S} {P : Spine (Δ ▷ (λ δ → El (apps (γ .Carrier) δ))) → Ty}
-    → Spine (disp-alg (sig-spine S (λ {O} o → lams {Δ = input O (λ z → El (apps (γ .Carrier) z))} (apps (at o (γ .algebra))))) P)
-    → Spine (disp-alg (γ .algebra) P)
-  coe-disp-alg-η {Δ} {S} {γ} {P} β
-    = coe (cong (λ α → Spine (disp-alg α P)) (sig-spine-η {Γ = λ {O} o → input O _} {α = γ .algebra})) β

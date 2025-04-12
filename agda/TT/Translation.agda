@@ -45,25 +45,11 @@ module R (m : MLTT-Ext) where
   -- Data is translated by the provided inductive algebras
   model .T-Data .Data S γ δ = El (apps (γ .Carrier) δ)
   model .T-Data .ctor {S = S} {γ} o v = apps (at o (γ .algebra)) v
-  model .T-Data .elim {Δ = Δ} {S = S} {γ} P β δx = apply-ind-sec γ P (coe-disp-alg-η {γ = γ} β) δx
-  model .T-Data .Data-β {Δ = Δ} {S = S} {γ = γ} P β o v
-    = let x = reflect (apply-ind-coh γ P (coe-disp-alg-η {γ = γ} β) o v) in {!   !}
-    -- let induction-on-P = app (γ .induction) (lams (λ δx → code (P δx))) in
+  model .T-Data .ctors S γ = γ .algebra
+  model .T-Data .ctors-η S γ = sym (sig-spine-η {Γ = λ {O} o → input O _} {α = γ .algebra})
+  model .T-Data .elim {Δ = Δ} {S = S} {γ} P β δx = apply-ind-sec γ P β δx
+  model .T-Data .Data-β {Δ = Δ} {S = S} {γ = γ} P β o v = reflect (apply-ind-coh γ P β o v)
 
-    -- let β-over-α = coe (cong₂ (λ α P → Spine (disp-alg α P))
-    --             (sig-spine-η {Γ = λ {O} o → input O _} {α = γ .algebra})
-    --             (funext (λ δ → sym (El-apps-lams-code δ)))) β in
-    -- let section-coh = apps induction-on-P β-over-α in
-    -- let coh = at o (get-spine {Δ = coh β-over-α _} (snd section-coh)) in
-    -- let coh-for-v = reflect (apps coh v) in
-    
-    -- {!   !}
-    -- coh-for-v
-    -- trans (cong₂ apps refl (cong (λ x → (output _ ⨾ x)) (cong₂ apps (cong (at o) sig-spine-η) refl))) (trans coh-for-v {!   !} )
-
-    -- trans {!  !} (trans {!   !} {!   !})
-  -- TODO: repr on data
--- coe-Tm ( trans ( cong El Πs-β) U-η-1) ( apps (..) (..)) ≡ apps ( Sig-construction.at T-MLTT o β) (..)
   -- Repr is translated away
   model .T-R .Repr A = A
   model .T-R .repr t = t
