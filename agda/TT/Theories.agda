@@ -1,7 +1,7 @@
-{-# OPTIONS --prop #-}
+
 module TT.Theories where
 
-open import Utils
+open import TT.Utils
 open import TT.Core
 open import TT.Tel
 open import TT.Base
@@ -10,6 +10,8 @@ open import TT.Repr
 open import TT.Sig
 
 -- The type of extensional MLTT models
+--
+-- This is just MLTT with the equality reflection rule.
 record MLTT-Ext : Set1 where
   open MLTT-structure
   field
@@ -25,17 +27,18 @@ module _ where
   open MLTT-Ext
 
   postulate
-    -- Syntax of MLTT and a recursor.
+    -- Syntax of MLTT-Ext and a recursor.
     --
     -- Agda cannot define syntax for second order theories natively.
     MLTT-Ext-syntax : MLTT-Ext
     MLTT-Ext-rec : (d : MLTT-Ext) → T MLTT-Ext-syntax ~> T d
   
-  -- We could postulate additionally the computation rules for the recursor. 
-  -- Also, we could postulate the preservation of all the structure of the syntax.
-  -- This is not needed for our purposes.
+  -- Could postulate additionally the computation rules for the
+  -- recursor, not needed here.
     
 -- The type of DataTT models
+--
+-- This is MLTT with Data and Repr.
 record DataTT : Set1 where
   field
     T : TT
@@ -50,11 +53,13 @@ record DataTT : Set1 where
     T-RΣ : Repr-compat-Σ T T-R T-Σ
     T-R⊤ : Repr-compat-⊤ T T-R T-⊤
     T-RId : Repr-compat-Id T T-R T-Id
+    T-RData : Repr-Data-structure T T-R T-MLTT T-Data
     
 
 module _ where
   open DataTT
   postulate
-    -- Syntax of dataTT and a recursor.
+    -- Syntax of DataTT and a recursor.
+    -- Same story as before.
     DataTT-syntax : DataTT
     DataTT-rec : (d : DataTT) → T DataTT-syntax ~> T d

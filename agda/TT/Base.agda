@@ -1,24 +1,31 @@
-{-# OPTIONS --prop #-}
+
 module TT.Base where
 
 open import TT.Core
 open import TT.Tel
-open import Utils
+open import TT.Utils
 
 open import Relation.Binary.PropositionalEquality.Core using (_≡_; refl; subst; sym; trans; cong)
 
+-- Base type formers for a shallow embedding of
+-- Martin-Löf Type Theory in Agda. (AKA SOGAT form)
+--
+-- Definitional equality of these structures
+-- is given by the propositional equality of Agda _≡_.
 
+-- Universes
 record U-structure (T : TT) : Set1 where
   open TT T
   field
     U : Ty
+
     El : Tm U → Ty
     code : Ty → Tm U
 
     U-η-1 : ∀ {A} → El (code A) ≡ A
     U-η-2 : ∀ {t} → code (El t) ≡ t
-      
 
+-- Functions
 record Π-structure (T : TT) : Set1 where
   open TT T
   field
@@ -39,6 +46,8 @@ record Π-structure (T : TT) : Set1 where
   syntax Π A (λ x → B) = [ x ∶ A ] ⇒ B
       
   open Tel-construction T
+
+  -- Telescopic versions of Π
 
   Πs : (Δ : Tel) → (Spine Δ → Ty) → Ty
   Πs ∙ t = t []
@@ -69,13 +78,16 @@ record ⊤-structure (T : TT) : Set1 where
   open TT T
   field
     ⊤ : Ty
+
     tt : Tm ⊤
+
     ⊤-η : ∀ {t} → tt ≡ t
 
 record Σ-structure (T : TT) : Set1 where
   open TT T
   field
     Σ : (A : Ty) → (Tm A → Ty) → Ty
+
     pair : {A : Ty} → {B : Tm A → Ty}
       → (a : Tm A)
       → (b : Tm (B a))
@@ -110,18 +122,38 @@ module Σs-notation (T : TT) (T-Σ : Σ-structure T) (T-⊤ : ⊤-structure T) w
   get-spine : Tm (Σs Δ) → Spine Δ
   get-spine {Δ = ∙} tt = []
   get-spine {Δ = ext A Δ} q = fst q , get-spine (snd q)
+      
+module Us-notation (T : TT) (T-Π : Π-structure T) (T-U : U-structure T) where
+  open TT T
+  open Π-structure T-Π
+  open U-structure T-U
+  open Tel-construction T
+
+  dcodes : (Spine Δ → Ty) → Tm ([ δ ∷ Δ ] ⇒ U)
+  dcodes x = lams (λ δ → code (x δ))
+
+  dEls : Tm ([ δ ∷ Δ ] ⇒ U) → (Spine Δ → Ty)
+  dEls x = (λ δ → El (apps x δ))
+  
+  cong-dEls : ∀ {Δ : Tel} {δ δ'} → (P : Tm ([ δ ∷ Δ ] ⇒ U)) → δ ≡ δ' → dEls {Δ = Δ} P δ ≡ dEls {Δ = Δ} P δ'
+  cong-dEls P refl = refl
+
+  dEls-dcodes-β : ∀ {Δ : Tel} {P : Spine Δ → Ty} (δ : Spine Δ) → dEls (dcodes P) δ ≡ P δ
+  dEls-dcodes-β {P = P} δ = trans (cong (λ t → El t) (Πs-β {f = λ δx → code (P δx)})) U-η-1
 
     
 record Id-structure (T : TT) : Set1 where
   open TT T
   field
     Id : {A : Ty} → Tm A → Tm A → Ty
+
     rfl : {A : Ty} → (a : Tm A) → Tm (Id a a)
     J : {A : Ty}
         → (P : (a : Tm A) → (b : Tm A) → Tm (Id a b) → Ty)
         → ((a : Tm A) → Tm (P a a (rfl a)))
         → {a : Tm A} → {b : Tm A} → (p : Tm (Id a b))
         → Tm (P a b p)
+        
     Id-β : ∀ {A} {P} {a} {r : (a : Tm A) → Tm (P a a (rfl a))}
       → J P r (rfl a) ≡ r a
       

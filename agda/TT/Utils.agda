@@ -1,9 +1,10 @@
-module Utils where
+module TT.Utils where
 
 open import Relation.Binary.PropositionalEquality.Core using (_≡_; refl; subst; sym)
 open import Axiom.Extensionality.Propositional
         
 postulate
+  -- Useful sometimes when working with HOAS
   funext : ∀ {a b} → Extensionality a b
   
 -- Fibered equality

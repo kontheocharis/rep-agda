@@ -1,8 +1,11 @@
-{-# OPTIONS --prop #-}
+
 module TT.Tel where
 
 open import Data.Product.Base using (_,_) renaming (Σ to Pair)
 open import TT.Core
+
+open import Relation.Binary.PropositionalEquality.Core
+  using (_≡_; refl; subst; sym; cong; trans; cong₂; cong-app)
 
 module Tel-construction (T : TT) where
   open TT T
@@ -52,3 +55,12 @@ module Tel-construction (T : TT) where
 
   tail : ∀ {Δ Δ'} → (v : Spine (extN Δ Δ')) → Spine (Δ' (init v))
   tail {Δ' = Δ'} sp = let (a , b) = split {Δ' = Δ'} sp in b
+  
+  take : ∀ {A} → Spine (a ∶ A , ∙) → Tm A
+  take (a , []) = a
+  
+  curry : ∀ {x : Set} {Δ} {A : Spine Δ → Ty} → (f : (δ : Spine Δ) → Tm (A δ) → x) → Spine (Δ ▷ A) → x
+  curry f sp = let (δ , t) = split sp in f δ (take t)
+  
+  uncurry : ∀ {x : Set} {Δ} {A : Spine Δ → Ty} → (f : Spine (Δ ▷ A) → x) → (δ : Spine Δ) → Tm (A δ) → x
+  uncurry f δ t = f (δ ⨾ t)

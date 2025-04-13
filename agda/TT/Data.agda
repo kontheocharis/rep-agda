@@ -1,7 +1,7 @@
-{-# OPTIONS --prop #-}
+
 module TT.Data where
 
-open import Utils
+open import TT.Utils
 open import TT.Core
 open import TT.Base
 open import TT.Tel 
@@ -25,7 +25,7 @@ record Data-structure (T : TT)
     -- Define this as an element of the language rather than
     -- a function to make Agda happy
     ctors : ∀ {Δ} → (S : Sig Δ) → (γ : IndAlg S) → Spine (alg S (Data S γ))
-    -- η rule uniquely determines its value:
+    -- η rule uniquely determines its value, so it's the same
     ctors-η : ∀ {Δ} → (S : Sig Δ) → (γ : IndAlg S) → ctors S γ ≡ sig-spine S (λ p → lams (ctor p))
   
   field

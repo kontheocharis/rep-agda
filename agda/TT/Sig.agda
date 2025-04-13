@@ -1,11 +1,10 @@
-{-# OPTIONS --prop #-}
+
 module TT.Sig where
 
-open import Utils
+open import TT.Utils
 open import TT.Core
 open import TT.Base
 open import TT.Tel 
-open import TT.Lemmas 
 
 open import Relation.Binary.PropositionalEquality.Core using (_≡_; refl; subst; cong; cong₂; sym)
 open import Data.Product.Base using (_,_) renaming (Σ to Pair)
@@ -14,6 +13,7 @@ open import Data.Product.Base using (_,_) renaming (Σ to Pair)
 module Sig-construction {T : TT} (T-MLTT : MLTT-structure T) where
   open TT T
   open MLTT-structure T-MLTT
+  open Us-notation T T-Π T-U
 
   data Op : Tel → Set
 
@@ -74,6 +74,34 @@ module Sig-construction {T : TT} (T-MLTT : MLTT-structure T) where
 
   alg : (S : Sig Δ) → (Spine Δ → Ty) → Tel
   alg S X = sig-tel S (λ {O} _ → [ ν ∷ input O X ] ⇒ X (output ν))
+  
+  record _≈_ {Δ : Tel} (X : Spine Δ → Ty) (Y : Spine Δ → Ty) : Set where
+    constructor reversible
+    field
+      forward : (δ : Spine Δ) → Tm (X δ) → Tm (Y δ)
+      backward : (δ : Spine Δ) → Tm (Y δ) → Tm (X δ)
+    
+  open _≈_ public
+  
+  input-map : ∀ {X Y} {O : Op Δ} → (f : (δ : Spine Δ) → Tm (X δ) → Tm (Y δ)) → (v : Spine (input O X)) → Spine (input O Y)
+  input-map {O = Πext A O'} f (a , v') = (a , input-map f v')
+  input-map {O = Πι δ O'} f (x , v') = (f _ x , input-map f v')
+  input-map {O = ι δ'} f [] = []
+  
+  output-input-id : ∀ {X} {Y : (δ : Spine Δ) → Ty} {O : Op Δ} → (f : (δ : Spine Δ) → Tm (X δ) → Tm (Y δ)) → (v : Spine (input O X)) → output (input-map f v) ≡ output v
+  output-input-id {X = X} {Y = Y} {O = Πext A O'} f (a , v) = output-input-id f v
+  output-input-id {X = X} {Y = Y} {O = Πι δ O'} f (x , v) = output-input-id f v
+  output-input-id {X = X} {Y = Y} {O = ι δ'} f [] = refl
+  
+  -- output-map : ∀ {X} {Y : Spine Δ → Ty} {O : Op Δ} → (f : (δ : Spine Δ) → Tm (X δ) → Tm (Y δ))
+  --   → (v : Spine (input O X)) → Tm (X (output (input-map f v))) → Tm (Y (output v))
+  -- output-map {X = X} {Y = Y} {O = Πext A O'} f (a , v) t = output-map f v t
+  -- output-map {X = X} {Y = Y} {O = Πι δ O'} f (x , v) t = output-map f v t
+  -- output-map {X = X} {Y = Y} {O = ι δ'} f [] t = f _ t
+
+  -- alg-map-forward : ∀ {X Y} {S : Sig Δ} → (f : (δ : Spine Δ) → Tm (X δ) → Tm (Y δ)) → (α : Spine (alg S X)) → Spine (alg S Y)
+  -- alg-map-forward {X = X} {Y = Y} {S = S} f α =
+  --   sig-spine S (λ {O} o → lams {Δ = input O Y} (λ v →  (apps (at o α) v) ))
 
   disp-input : ∀ {X} → (O : Op Δ) → (Spine (Δ ▷ X) → Ty) → Tel
   disp-input {X = X} (Πext A O') Y = a ∶ A , disp-input (O' a) Y
@@ -113,7 +141,7 @@ module Sig-construction {T : TT} (T-MLTT : MLTT-structure T) where
   ind {Δ = Δ} {X = X} {S} α =
     [ Y ∶ [ _ ∷ Δ ▷ X ] ⇒ U ]
     ⇒ [ β ∷ disp-alg α (λ δx → El (apps Y δx)) ]
-    ⇒ Σs (σ ∶ [ δx ∷ Δ ▷ X ] ⇒ El (apps Y δx) , coh β (apps σ))
+    ⇒ Σs (σ ∶ [ δx ∷ Δ ▷ X ] ⇒ dEls Y δx , coh β (apps σ))
     
   record IndAlg {Δ : Tel} (S : Sig Δ) : Set where
     field
@@ -122,14 +150,13 @@ module Sig-construction {T : TT} (T-MLTT : MLTT-structure T) where
       induction : Tm (ind algebra)
       
   open IndAlg
-  open El-apps-lams-code T T-Π T-U
   
   apply-ind : ∀ {Δ} {S : Sig Δ}
     → (γ : IndAlg S)
-    → (P : Spine (Δ ▷ (λ δ → El (apps (γ .Carrier) δ))) → Ty)
+    → (P : Spine (Δ ▷ (dEls (γ .Carrier))) → Ty)
     → (β : Spine (disp-alg (γ .algebra) P))
     → Spine (σ ∶ [ δx ∷ Δ ▷ (λ δ → El (apps (γ .Carrier) δ)) ] ⇒ P δx , coh β (apps σ))
-  apply-ind {Δ} {S} γ P β rewrite funext (λ δ → sym (El-apps-lams-code {P = P} δ)) =
+  apply-ind {Δ} {S} γ P β rewrite funext (λ δ → sym (dEls-dcodes-β {P = P} δ)) =
     let induction-on-P = app (γ .induction) (lams (λ δx → code (P δx))) in
     let section-coh = apps induction-on-P β in
     let section-coh-spine = get-spine section-coh in
@@ -137,18 +164,18 @@ module Sig-construction {T : TT} (T-MLTT : MLTT-structure T) where
   
   apply-ind-sec : ∀ {Δ} {S : Sig Δ}
     → (γ : IndAlg S)
-    → (P : Spine (Δ ▷ (λ δ → El (apps (γ .Carrier) δ))) → Ty)
+    → (P : Spine (Δ ▷ dEls (γ .Carrier)) → Ty)
     → (β : Spine (disp-alg (γ .algebra) P))
-    → (δx : Spine (Δ ▷ (λ δ → El (apps (γ .Carrier) δ))))
+    → (δx : Spine (Δ ▷ dEls (γ .Carrier)))
     → Tm (P δx)
   apply-ind-sec {Δ} {S} γ P β δx with (apply-ind γ P β)
   apply-ind-sec {Δ} {S} γ P β δx | (σ , _) = apps σ δx
   
   apply-ind-coh : ∀ {Δ} {S : Sig Δ}
     → (γ : IndAlg S)
-    → (P : Spine (Δ ▷ (λ δ → El (apps (γ .Carrier) δ))) → Ty)
+    → (P : Spine (Δ ▷ dEls (γ .Carrier)) → Ty)
     → (β : Spine (disp-alg (γ .algebra) P))
-    → {O : Op Δ} → (o : O ∈ S) → (v : Spine (input O ((λ δ → El (apps (γ .Carrier) δ))))) 
+    → {O : Op Δ} → (o : O ∈ S) → (v : Spine (input O (dEls (γ .Carrier))) )
     → Tm (Id (apply-ind-sec γ P β (output v ⨾ apps (at o (γ .algebra)) v))
         ((coe-Tm (sec-coh-Ty (apply-ind-sec γ P β) O v (at o (γ .algebra))) (apps (at o β) (apply-ind-sec γ P β $ v)))))
   apply-ind-coh {Δ} {S} γ P β o v with (apply-ind γ P β)

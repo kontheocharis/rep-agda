@@ -1,4 +1,4 @@
-{-# OPTIONS --prop #-}
+
 module TT.Core where
 
 open import Relation.Binary.PropositionalEquality.Core using (_≡_; refl; subst)

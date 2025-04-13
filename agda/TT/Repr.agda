@@ -1,13 +1,14 @@
-{-# OPTIONS --prop #-}
+
 module TT.Repr where
 
 open import Relation.Binary.PropositionalEquality.Core
-  using (_≡_; refl; subst; sym; cong; trans; cong₂)
+  using (_≡_; refl; subst; sym; cong; trans; cong₂; cong-app)
 
-open import Utils
+open import TT.Utils
 open import TT.Core
 open import TT.Base
 open import TT.Data
+open import TT.Sig
 
 record Repr-structure (T : TT) : Set1 where
   open TT T
@@ -19,20 +20,6 @@ record Repr-structure (T : TT) : Set1 where
 
     Repr-η-1 : ∀ {A} {t : Tm A} → unrepr (repr t) ≡ t
     Repr-η-2 : ∀ {A} {t : Tm (Repr A)} → repr (unrepr t) ≡ t
-
-record Repr-Data-structure
-  (T : TT)
-  (T-R : Repr-structure T)
-  (T-MLTT : MLTT-structure T)
-  (T-Data : Data-structure T T-MLTT) : Set1 where
-  open TT T
-  open Repr-structure T-R
-  open MLTT-structure T-MLTT
-  open Data-structure T-Data
-  field
-    repr-Data : ∀ {Δ S γ δ} → Repr (Data {Δ = Δ} S γ δ) ≡ El (apps (γ .Carrier) δ)
-    -- repr-ctor : ∀ {γ o v} → Id (repr (ctor o v)) (apps (at o (γ .algebra)) v)
-    
     
 record Repr-compat-Π (T : TT)
   (T-R : Repr-structure T)
@@ -124,3 +111,45 @@ record Repr-compat-Id (T : TT)
         → {r : (a : Tm A) → Tm (Repr (P a a (rfl a)))}
         → {a : Tm A} → {b : Tm A} → {p : Tm (Id a b)}
         → unrepr (J (λ a b p → Repr (P a b p)) r p) ≡ J P (λ a → unrepr (r a)) p
+
+record Repr-Data-structure
+  (T : TT)
+  (T-R : Repr-structure T)
+  (T-MLTT : MLTT-structure T)
+  (T-Data : Data-structure T T-MLTT) : Set1 where
+  open TT T
+  open Repr-structure T-R
+  open MLTT-structure T-MLTT
+  open Data-structure T-Data
+  open Us-notation T T-Π T-U
+  open Sig-construction T-MLTT
+  
+  
+  field
+    Repr-Data : ∀ {Δ S γ δ} → Repr (Data {Δ = Δ} S γ δ) ≡ dEls (γ .Carrier) δ
+
+  repr-input : ∀ {Δ} {O : Op Δ} {S} {γ : IndAlg S} → (v : Spine (input O (Data S γ)))
+    → Spine (input O (dEls (γ .Carrier)))
+  repr-input v = input-map (λ δ → λ x → coe-Tm Repr-Data (repr x)) v 
+  
+  El-apps-output-input-id : ∀ Δ (O : Op Δ) {S} (γ : IndAlg S) (o : O ∈ S) (v : Spine (input O (Data S γ)))
+    → El (apps (γ .Carrier) (output (repr-input v))) ≡ El (apps (γ .Carrier) (output v))
+  El-apps-output-input-id Δ O γ o v = cong (λ δ → El (apps {Δ = Δ} (γ .Carrier) δ)) (output-input-id _ v)
+  
+
+  repr-disp-alg : ∀ {Δ} {S : Sig Δ} {γ : IndAlg S} → (M : Spine (Δ ▷ Data S γ) → Ty)
+      → (β : Spine (disp-alg (ctors S γ) M))
+      → Spine (disp-alg (γ .algebra) (curry {A = {!   !}} (λ δ x → uncurry M δ (coe-Tm ({!   !}) (repr x)))))
+  repr-disp-alg = {!   !} 
+    
+  field
+    repr-ctor : ∀ {Δ} {O : Op Δ} {S} {γ : IndAlg S} → (o : O ∈ S) → (v : Spine (input O (Data S γ)))
+      → Tm (Id
+        (repr (ctor o v))
+          (coe-Tm (trans (El-apps-output-input-id Δ O γ o v) (sym Repr-Data))
+        (apps (at o (γ .algebra)) (repr-input v))))
+        
+    repr-equiv-elim : ∀ {Δ} {S : Sig Δ} {γ} → (M : Spine (Δ ▷ Data S γ) → Ty)
+      → (β : Spine (disp-alg (ctors S γ) M))
+      → (δx : Spine (Δ ▷ Data S γ))
+      → elim M β δx ≡ apply-ind-sec γ (curry λ δ x → uncurry M δ (repr x)) {!   !}  {!   !}
