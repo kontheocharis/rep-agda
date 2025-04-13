@@ -9,7 +9,6 @@ open import TT.Core
 open import TT.Base
 open import TT.Data
 open import TT.Sig
-open import Data.Product.Base using (_,_) renaming (Σ to Pair)
 
 record Repr-structure (T : TT) : Set1 where
   open TT T
@@ -137,16 +136,10 @@ record Repr-Data-structure
     → El (apps (γ .Carrier) (output (repr-input v))) ≡ El (apps (γ .Carrier) (output v))
   El-apps-output-input-id Δ O γ o v = cong (λ δ → El (apps {Δ = Δ} (γ .Carrier) δ)) (output-input-id _ v)
   
-  
-  co-repr-total : ∀ {Δ} {S : Sig Δ}  {γ : IndAlg S} → (Spine (Δ ▷ Data S γ) → Ty) → (Spine (Δ ▷ dEls (γ .Carrier)) → Ty)
-  co-repr-total {Δ} {S} {γ} f δx = f (map-last {Δ = Δ} (λ δ x → unrepr (coe-Tm (sym Repr-Data) x)) δx)
-  
-  repr-total : ∀ {Δ} {S : Sig Δ} {γ : IndAlg S} → Spine (Δ ▷ Data S γ) → Spine (Δ ▷ dEls (γ .Carrier))
-  repr-total {Δ} δx = map-last {Δ = Δ} ((λ δ x → coe-Tm Repr-Data (repr x))) δx
 
   repr-disp-alg : ∀ {Δ} {S : Sig Δ} {γ : IndAlg S} → (M : Spine (Δ ▷ Data S γ) → Ty)
       → (β : Spine (disp-alg (ctors S γ) M))
-      → Spine (disp-alg (γ .algebra) (co-repr-total {S = S} M))
+      → Spine (disp-alg (γ .algebra) (?))
   repr-disp-alg = {!   !} 
     
   field
@@ -156,10 +149,7 @@ record Repr-Data-structure
           (coe-Tm (trans (El-apps-output-input-id Δ O γ o v) (sym Repr-Data))
         (apps (at o (γ .algebra)) (repr-input v))))
         
-    repr-equiv-elim : ∀ {Δ} {S : Sig Δ} {γ : IndAlg S} → (M : Spine (Δ ▷ Data S γ) → Ty)
+    repr-equiv-elim : ∀ {Δ} {S : Sig Δ} {γ} → (M : Spine (Δ ▷ Data S γ) → Ty)
       → (β : Spine (disp-alg (ctors S γ) M))
       → (δx : Spine (Δ ▷ Data S γ))
-      → elim M β δx ≡ apply-ind-sec {S = S}
-          γ (co-repr-total {S = S} M) (repr-disp-alg M β)
-          (repr-total {S = S} δx)
-        by (cong (λ δx → Tm (M δx)) {! map-last-id   !} )
+      → elim M β δx ≡ apply-ind-sec γ (curry λ δ x → M (δ ⨾ unrepr x)) {!   !}  {!   !}

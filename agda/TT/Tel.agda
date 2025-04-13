@@ -64,3 +64,6 @@ module Tel-construction (T : TT) where
   
   uncurry : ∀ {x : Set} {Δ} {A : Spine Δ → Ty} → (f : Spine (Δ ▷ A) → x) → (δ : Spine Δ) → Tm (A δ) → x
   uncurry f δ t = f (δ ⨾ t)
+  
+  map-last : ∀ {Δ X X'} (f : (δ : Spine Δ) → Tm (X δ) → Tm (X' δ)) → Spine (Δ ▷ X) → Spine (Δ ▷ X')
+  map-last f sp = let (δ , t) = split sp in δ ⨾ f δ (take t)
