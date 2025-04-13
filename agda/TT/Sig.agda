@@ -1,4 +1,4 @@
-
+{-# OPTIONS --rewriting #-}
 module TT.Sig where
 
 open import TT.Utils
@@ -9,6 +9,7 @@ open import TT.Tel
 open import Relation.Binary.PropositionalEquality.Core using (_≡_; refl; subst; cong; cong₂; sym)
 open import Data.Product.Base using (_,_) renaming (Σ to Pair)
  
+{-# BUILTIN REWRITE _≡_ #-}
 
 module Sig-construction {T : TT} (T-MLTT : MLTT-structure T) where
   open TT T
@@ -88,10 +89,25 @@ module Sig-construction {T : TT} (T-MLTT : MLTT-structure T) where
   input-map {O = Πι δ O'} f (x , v') = (f _ x , input-map f v')
   input-map {O = ι δ'} f [] = []
   
+  input-map-id : ∀ {X} {O : Op Δ}
+    → (v : Spine (input O X))
+    → input-map (λ δ x → x) v ≡ v
+  input-map-id {X = X} {O = Πext A O'} (a , v) rewrite input-map-id {X = X} {O = O' a} v = refl
+  input-map-id {X = X} {O = Πι δ O'} (x , v) rewrite input-map-id {X = X} {O = O'} v = refl
+  input-map-id {X = X} {O = ι δ'} [] = refl
+  
+  {-# REWRITE input-map-id #-}
+  
   output-input-id : ∀ {X} {Y : (δ : Spine Δ) → Ty} {O : Op Δ} → (f : (δ : Spine Δ) → Tm (X δ) → Tm (Y δ)) → (v : Spine (input O X)) → output (input-map f v) ≡ output v
   output-input-id {X = X} {Y = Y} {O = Πext A O'} f (a , v) = output-input-id f v
   output-input-id {X = X} {Y = Y} {O = Πι δ O'} f (x , v) = output-input-id f v
   output-input-id {X = X} {Y = Y} {O = ι δ'} f [] = refl
+  
+  -- disp-input-map : ∀ {X Y} {O : Op Δ}
+  --   → (f : (δ : Spine Δ) → Tm (X δ) → Tm (Y δ))
+  --   → (v : Spine (disp-input O M))
+  --   → Spine (disp-input O M)
+
   
   -- output-map : ∀ {X} {Y : Spine Δ → Ty} {O : Op Δ} → (f : (δ : Spine Δ) → Tm (X δ) → Tm (Y δ))
   --   → (v : Spine (input O X)) → Tm (X (output (input-map f v))) → Tm (Y (output v))
@@ -112,9 +128,48 @@ module Sig-construction {T : TT} (T-MLTT : MLTT-structure T) where
   disp-output {Y = Y} {O = Πext A O'} (a , μ) (α , []) = disp-output μ (app α a , [])
   disp-output {Y = Y} {O = Πι δ O'} (x , y , μ) (α , []) = disp-output μ (app α x , [])
   disp-output {Y = Y} {O = ι δ} [] (α , []) = (δ ⨾ α)
+  
+  disp-input-map : ∀ {X} {Y Y'} {O : Op Δ}
+    → (f : (δ : Spine (Δ ▷ X)) → Tm (Y δ) → Tm (Y' δ))
+    → (v : Spine (disp-input O Y)) → Spine (disp-input O Y')
+  disp-input-map {O = Πext A O'} f (a , v') = (a , disp-input-map f v')
+  disp-input-map {O = Πι δ O'} f (x , y , v') = (x , f (δ ⨾ x) y , disp-input-map f v')
+  disp-input-map {O = ι δ'} f [] = []
+  
+  disp-input-map-id : ∀ {X} {Y} {O : Op Δ}
+    → (v : Spine (disp-input O Y))
+    → disp-input-map {X = X} {Y = Y} {Y' = Y} {O = O} (λ δ x → x) v ≡ v
+  disp-input-map-id {O = Πext A O'} (a , v) rewrite (disp-input-map-id {O = O' a} v) = refl
+  disp-input-map-id {O = Πι δ O'} (x , y , v) rewrite (disp-input-map-id {O = O'} v) = refl
+  disp-input-map-id {O = ι δ'} [] = refl
+  
+  {-# REWRITE disp-input-map-id #-}
+  
+  disp-output-disp-input-id : ∀ {X} {Y} {Y' : Spine (Δ ▷ X) → Ty} {O : Op Δ}
+    → (f : (δ : Spine (Δ ▷ X)) → Tm (Y δ) → Tm (Y' δ))
+    → (v : Spine (disp-input O Y))
+    → (α : Spine (alg (O ◁ ε) X))
+    → disp-output (disp-input-map f v) α ≡ disp-output v α
+  disp-output-disp-input-id {X = X} {Y = Y} {O = Πext A O'} f (a , v) (α , []) = disp-output-disp-input-id f v (app α a , [])
+  disp-output-disp-input-id {X = X} {Y = Y} {O = Πι δ O'} f (x , y , v) (α , []) = disp-output-disp-input-id f v (app α x , [])
+  disp-output-disp-input-id {X = X} {Y = Y} {O = ι δ'} f [] (α , []) = refl
+  
+  {-# REWRITE disp-output-disp-input-id #-}
 
   disp-alg : ∀ {X} {S : Sig Δ} → Spine (alg S X) → (Spine (Δ ▷ X) → Ty) → Tel
   disp-alg {S = S} α Y = sig-tel S (λ {O} o → [ μ ∷ disp-input O Y ] ⇒ Y (disp-output μ (at o α , [])))
+
+  disp-alg-map : ∀ {X} {S : Sig Δ} {α : Spine (alg S X)}
+    → ∀ {Y Y'}
+    → (f : (δ : Spine (Δ ▷ X)) → Tm (Y δ) → Tm (Y' δ))
+    → (f-inv : (δ : Spine (Δ ▷ X)) → Tm (Y' δ) → Tm (Y δ))
+    → Spine (disp-alg α Y)
+    → Spine (disp-alg α Y')
+  disp-alg-map {S = S} {α = α} {Y = Y} {Y' = Y'} f f-inv β
+    = sig-spine S (λ {O} o → lams {Δ = disp-input O Y'} λ v →
+      let x = at o β in
+      let z = apps x (disp-input-map f-inv v) in
+      f _ (apps x (disp-input-map f-inv v)))
 
   Sec : (Y : Spine Δ → Ty) → Set
   Sec {Δ = Δ} Y = (δ : Spine Δ) → Tm (Y δ)

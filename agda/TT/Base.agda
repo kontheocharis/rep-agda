@@ -1,4 +1,4 @@
-
+{-# OPTIONS --rewriting #-}
 module TT.Base where
 
 open import TT.Core
@@ -156,6 +156,9 @@ record Id-structure (T : TT) : Set1 where
         
     Id-β : ∀ {A} {P} {a} {r : (a : Tm A) → Tm (P a a (rfl a))}
       → J P r (rfl a) ≡ r a
+      
+  Id-uip-right : ∀ {A} {a b : Tm A} (p : A ≡ A) → Tm (Id a b) → Tm (Id a (coe-Tm p b))
+  Id-uip-right {A = A} {a = a} {b = b} refl p = p
       
 record Id-extensional (T : TT) (T-Id : Id-structure T) : Set1 where
   open TT T

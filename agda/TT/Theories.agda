@@ -1,4 +1,4 @@
-
+{-# OPTIONS --rewriting #-}
 module TT.Theories where
 
 open import TT.Utils

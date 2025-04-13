@@ -1,4 +1,4 @@
-
+{-# OPTIONS --rewriting #-}
 module TT.Tel where
 
 open import Data.Product.Base using (_,_) renaming (Σ to Pair)
@@ -67,3 +67,10 @@ module Tel-construction (T : TT) where
   
   map-last : ∀ {Δ X X'} (f : (δ : Spine Δ) → Tm (X δ) → Tm (X' δ)) → Spine (Δ ▷ X) → Spine (Δ ▷ X')
   map-last f sp = let (δ , t) = split sp in δ ⨾ f δ (take t)
+  
+  coe-total : ∀ {Δ X X'} → X ≡ X' → Spine (Δ ▷ X) → Spine (Δ ▷ X')
+  coe-total refl sp = sp
+  
+  split-take-id : ∀ {Δ X} → (sp : Spine (Δ ▷ X)) → map-last {Δ = Δ} (λ δ x → x) sp ≡ sp
+  split-take-id {Δ = ext A Δ} (a , sp') = cong (λ t → (a , t)) (split-take-id {Δ = Δ a} sp')
+  split-take-id {Δ = ∙} (a , []) = refl

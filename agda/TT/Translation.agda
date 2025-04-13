@@ -1,4 +1,4 @@
-
+{-# OPTIONS --rewriting #-}
 module TT.Translation where
 
 open import TT.Utils
@@ -46,7 +46,7 @@ module R (mltt : MLTT-Ext) where
   datatt .T-Data .Data S γ δ = El (apps (γ .Carrier) δ)
   datatt .T-Data .ctor {S = S} {γ} o v = apps (at o (γ .algebra)) v
   datatt .T-Data .ctors S γ = γ .algebra
-  datatt .T-Data .ctors-η S γ = sym (sig-spine-η {Γ = λ {O} o → input O _} {α = γ .algebra})
+  datatt .T-Data .ctors-def S γ = sym (sig-spine-η {Γ = λ {O} o → input O _} {α = γ .algebra})
   datatt .T-Data .elim {Δ = Δ} {S = S} {γ} P β δx = apply-ind-sec γ P β δx
   datatt .T-Data .Data-β {Δ = Δ} {S = S} {γ = γ} P β o v = reflect (apply-ind-coh γ P β o v)
 
@@ -76,7 +76,20 @@ module R (mltt : MLTT-Ext) where
   datatt .T-RId .unrepr-rfl = refl
   datatt .T-RId .repr-J = refl
   datatt .T-RId .unrepr-J = refl
-  datatt .T-RData .Repr-Data = refl
+
+  datatt .T-RData .Repr-Data δ = refl
+  datatt .T-RData .repr-total {Δ = Δ} δx = map-last {Δ = Δ} (λ δ x → x) δx
+  datatt .T-RData .unrepr-total {Δ = Δ} δx = map-last {Δ = Δ} (λ δ x → x) δx
+  datatt .T-RData .repr-total-def δx = refl
+  datatt .T-RData .unrepr-total-def δx = refl
+  datatt .T-RData .unrepr-total-repr-total {Δ} δx = trans (split-take-id (map-last {Δ = Δ} (λ δ x → x) δx)) (split-take-id δx)
+  datatt .T-RData .repr-ctor {γ = γ} o v = Id-uip-right refl (rfl _)
+  datatt .T-RData .repr-disp-alg {γ = γ} M β = β
+  datatt .T-RData .repr-disp-alg-def {γ = γ} M β = sym (sig-spine-η {Γ = λ {O} o → disp-input O _})
+  datatt .T-RData .unrepr-disp-alg {γ = γ} M β = β
+  datatt .T-RData .unrepr-disp-alg-def {γ = γ} M β = sym (sig-spine-η {Γ = λ {O} o → disp-input O _})
+  datatt .T-RData .repr-elim {γ = γ} M β δx = refl 
+  datatt .T-RData .unrepr-elim {γ = γ} M β δx = refl 
 
 
 -- From this, we can derive translations between syntax:

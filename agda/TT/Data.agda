@@ -1,4 +1,4 @@
-
+{-# OPTIONS --rewriting #-}
 module TT.Data where
 
 open import TT.Utils
@@ -26,7 +26,7 @@ record Data-structure (T : TT)
     -- a function to make Agda happy
     ctors : ∀ {Δ} → (S : Sig Δ) → (γ : IndAlg S) → Spine (alg S (Data S γ))
     -- η rule uniquely determines its value, so it's the same
-    ctors-η : ∀ {Δ} → (S : Sig Δ) → (γ : IndAlg S) → ctors S γ ≡ sig-spine S (λ p → lams (ctor p))
+    ctors-def : ∀ {Δ} → (S : Sig Δ) → (γ : IndAlg S) → ctors S γ ≡ sig-spine S (λ p → lams (ctor p))
   
   field
     elim : ∀ {Δ} {S : Sig Δ} {γ} → (M : Spine (Δ ▷ Data S γ) → Ty)
