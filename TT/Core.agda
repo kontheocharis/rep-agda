@@ -6,7 +6,7 @@ import TT.Utils
 
 open import Relation.Binary.PropositionalEquality.Core using (_≡_; refl; subst)
 
--- Type theory
+-- Type theory as a second order theory: Agda's contexts are re-used.
 record TT : Set1 where
   field
     Ty : Set

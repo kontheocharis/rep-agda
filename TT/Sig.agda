@@ -8,8 +8,9 @@ open import TT.Tel
 
 open import Relation.Binary.PropositionalEquality.Core using (_≡_; refl; subst; cong; cong₂; sym)
 open import Data.Product.Base using (_,_) renaming (Σ to Pair)
- 
-{-# BUILTIN REWRITE _≡_ #-}
+
+-- Formalisation of first order algebraic signatures with a carrier
+-- indexed by a telescope in some MLTT theory T.
 
 module Sig-construction {T : TT} (T-MLTT : MLTT-structure T) where
   open TT T
@@ -102,22 +103,6 @@ module Sig-construction {T : TT} (T-MLTT : MLTT-structure T) where
   output-input-id {X = X} {Y = Y} {O = Πext A O'} f (a , v) = output-input-id f v
   output-input-id {X = X} {Y = Y} {O = Πι δ O'} f (x , v) = output-input-id f v
   output-input-id {X = X} {Y = Y} {O = ι δ'} f [] = refl
-  
-  -- disp-input-map : ∀ {X Y} {O : Op Δ}
-  --   → (f : (δ : Spine Δ) → Tm (X δ) → Tm (Y δ))
-  --   → (v : Spine (disp-input O M))
-  --   → Spine (disp-input O M)
-
-  
-  -- output-map : ∀ {X} {Y : Spine Δ → Ty} {O : Op Δ} → (f : (δ : Spine Δ) → Tm (X δ) → Tm (Y δ))
-  --   → (v : Spine (input O X)) → Tm (X (output (input-map f v))) → Tm (Y (output v))
-  -- output-map {X = X} {Y = Y} {O = Πext A O'} f (a , v) t = output-map f v t
-  -- output-map {X = X} {Y = Y} {O = Πι δ O'} f (x , v) t = output-map f v t
-  -- output-map {X = X} {Y = Y} {O = ι δ'} f [] t = f _ t
-
-  -- alg-map-forward : ∀ {X Y} {S : Sig Δ} → (f : (δ : Spine Δ) → Tm (X δ) → Tm (Y δ)) → (α : Spine (alg S X)) → Spine (alg S Y)
-  -- alg-map-forward {X = X} {Y = Y} {S = S} f α =
-  --   sig-spine S (λ {O} o → lams {Δ = input O Y} (λ v →  (apps (at o α) v) ))
 
   disp-input : ∀ {X} → (O : Op Δ) → (Spine (Δ ▷ X) → Ty) → Tel
   disp-input {X = X} (Πext A O') Y = a ∶ A , disp-input (O' a) Y
@@ -198,6 +183,11 @@ module Sig-construction {T : TT} (T-MLTT : MLTT-structure T) where
     ⇒ [ β ∷ disp-alg α (λ δx → El (apps Y δx)) ]
     ⇒ Σs (σ ∶ [ δx ∷ Δ ▷ X ] ⇒ dEls Y δx , coh β (apps σ))
     
+  -- An inductive algebra packages the carrier, the algebra and the induction principle
+  -- This is what we will add to the syntax.
+  --
+  -- Notice that there is no occurrence of any members of T in here, so the resulting
+  -- syntax after adding IndAlg is still just second-order.
   record IndAlg {Δ : Tel} (S : Sig Δ) : Set where
     field
       Carrier : Tm ([ δ ∷ Δ ] ⇒ U)

@@ -19,14 +19,20 @@ record Data-structure (T : TT)
   open IndAlg public
 
   field
+    -- Data type for a signature. Also need an inductive algebra
     Data : ∀ {Δ} → (S : Sig Δ) → IndAlg S → Spine Δ → Ty
+
+    -- A constructor for a data type is associated with an algebra operation O ∈ S
+    -- and the inputs at O.
     ctor : ∀ {Δ} {O : Op Δ} {S} {γ : IndAlg S} → O ∈ S → (v : Spine (input O (Data S γ))) → Tm (Data S γ (output v))
 
+    -- <Helpers>
     -- Define this as an element of the language rather than
     -- a function to make Agda happy
     ctors : ∀ {Δ} → (S : Sig Δ) → (γ : IndAlg S) → Spine (alg S (Data S γ))
-    -- η rule uniquely determines its value, so it's the same
+    -- This rule uniquely determines its value, so it's the same
     ctors-def : ∀ {Δ} → (S : Sig Δ) → (γ : IndAlg S) → ctors S γ ≡ sig-spine S (λ p → lams (ctor p))
+    -- </Helpers>
   
   field
     elim : ∀ {Δ} {S : Sig Δ} {γ} → (M : Spine (Δ ▷ Data S γ) → Ty)

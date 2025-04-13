@@ -1,4 +1,4 @@
-
+{-# OPTIONS --rewriting #-}
 module TT.Repr where
 
 open import Relation.Binary.PropositionalEquality.Core
@@ -6,13 +6,25 @@ open import Relation.Binary.PropositionalEquality.Core
 
 open import TT.Utils
 open import TT.Core
+open import TT.Tel
 open import TT.Base
 open import TT.Data
 open import TT.Sig
+open import Data.Product.Base using (_,_) renaming (Σ to Pair)
 
 record Repr-structure (T : TT) : Set1 where
   open TT T
   field
+    -- This introduces the Repr modality which is an idempotent
+    -- modality with the property that Repr A ≃ A definitionally by
+    -- the η rules Repr-η-1 and Repr-η-2.
+    
+    -- Its role is purely intensional: relate data types to their
+    -- underlying inductive algebras, leaving everything else unchanged.
+    --
+    -- We need to be careful to not introduce any definitional equalities
+    -- that conflict with eliminating data types.
+
     Repr : Ty → Ty
 
     repr : ∀ {A} → Tm A → Tm (Repr A)
@@ -20,6 +32,8 @@ record Repr-structure (T : TT) : Set1 where
 
     Repr-η-1 : ∀ {A} {t : Tm A} → unrepr (repr t) ≡ t
     Repr-η-2 : ∀ {A} {t : Tm (Repr A)} → repr (unrepr t) ≡ t
+    
+-- Below are combatibility equations with the rest of the MLTT syntax
     
 record Repr-compat-Π (T : TT)
   (T-R : Repr-structure T)
@@ -112,6 +126,9 @@ record Repr-compat-Id (T : TT)
         → {a : Tm A} → {b : Tm A} → {p : Tm (Id a b)}
         → unrepr (J (λ a b p → Repr (P a b p)) r p) ≡ J P (λ a → unrepr (r a)) p
 
+
+-- This is the main bit: the action of Repr on data types
+
 record Repr-Data-structure
   (T : TT)
   (T-R : Repr-structure T)
@@ -126,30 +143,86 @@ record Repr-Data-structure
   
   
   field
-    Repr-Data : ∀ {Δ S γ δ} → Repr (Data {Δ = Δ} S γ δ) ≡ dEls (γ .Carrier) δ
+    -- Representing data types gives back the carrier for the inductive algebra
+    Repr-Data : ∀ {Δ S γ} δ → Repr (Data {Δ = Δ} S γ δ) ≡ dEls (γ .Carrier) δ
+
+  -- <Helpers>
+  -- The following are telescopic helpers for Repr.
+  -- Each of these are uniquely determined by their η rules but
+  -- are easier to work with in Agda if they are part of the record rather
+  -- than auxilliary definitions.
+    
+  dRepr : ∀ {Δ} → (Spine Δ → Ty) → (Spine Δ → Ty)
+  dRepr f δ = Repr (f δ)
+
+  field
+    -- repr the total space of a term
+    repr-total : ∀ {Δ} {S : Sig Δ} {γ : IndAlg S} → Spine (Δ ▷ Data S γ) → Spine (Δ ▷ dEls (γ .Carrier))
+
+    -- unrepr the total space of a term
+    unrepr-total : ∀ {Δ} {S : Sig Δ} {γ : IndAlg S}  → Spine (Δ ▷ dEls (γ .Carrier)) → Spine (Δ ▷ Data S γ)
+    
+    repr-total-def : ∀ {Δ} {S : Sig Δ} {γ : IndAlg S}
+      → (δx : Spine (Δ ▷ Data S γ))
+      → repr-total {γ = γ} δx ≡ map-last {Δ = Δ} ((λ δ x → coe-Tm (Repr-Data δ) (repr x))) δx
+    
+    unrepr-total-def : ∀ {Δ} {S : Sig Δ} {γ : IndAlg S}
+      → (δx : Spine (Δ ▷ dEls (γ .Carrier)))
+      → unrepr-total {γ = γ} δx ≡ map-last {Δ = Δ} (λ δ x → unrepr (coe-Tm (sym (Repr-Data δ)) x)) δx
+
+    unrepr-total-repr-total : ∀ {Δ} {S : Sig Δ} {γ : IndAlg S} (δx : Spine (Δ ▷ Data S γ))
+      → unrepr-total {Δ = Δ} (repr-total {Δ = Δ} δx) ≡ δx
 
   repr-input : ∀ {Δ} {O : Op Δ} {S} {γ : IndAlg S} → (v : Spine (input O (Data S γ)))
     → Spine (input O (dEls (γ .Carrier)))
-  repr-input v = input-map (λ δ → λ x → coe-Tm Repr-Data (repr x)) v 
+  repr-input v = input-map (λ δ → λ x → coe-Tm (Repr-Data δ) (repr x)) v 
   
   El-apps-output-input-id : ∀ Δ (O : Op Δ) {S} (γ : IndAlg S) (o : O ∈ S) (v : Spine (input O (Data S γ)))
     → El (apps (γ .Carrier) (output (repr-input v))) ≡ El (apps (γ .Carrier) (output v))
   El-apps-output-input-id Δ O γ o v = cong (λ δ → El (apps {Δ = Δ} (γ .Carrier) δ)) (output-input-id _ v)
   
+  unrepr-fam : ∀ {Δ} {S : Sig Δ} {γ : IndAlg S}
+    → (Spine (Δ ▷ Data S γ) → Ty)
+    → (Spine (Δ ▷ dEls (γ .Carrier)) → Ty)
+  unrepr-fam {Δ} M δx = M (unrepr-total {Δ = Δ} δx)
 
-  repr-disp-alg : ∀ {Δ} {S : Sig Δ} {γ : IndAlg S} → (M : Spine (Δ ▷ Data S γ) → Ty)
-      → (β : Spine (disp-alg (ctors S γ) M))
-      → Spine (disp-alg (γ .algebra) (?))
-  repr-disp-alg = {!   !} 
-    
+  -- </Helpers>
+
   field
+    -- Representing a constructor gives back the constructor (only propositionally otherwise
+    -- this rule forms a critical pair with Data-β)
     repr-ctor : ∀ {Δ} {O : Op Δ} {S} {γ : IndAlg S} → (o : O ∈ S) → (v : Spine (input O (Data S γ)))
       → Tm (Id
         (repr (ctor o v))
-          (coe-Tm (trans (El-apps-output-input-id Δ O γ o v) (sym Repr-Data))
+          (coe-Tm (trans (El-apps-output-input-id Δ O γ o v) (sym (Repr-Data _)))
         (apps (at o (γ .algebra)) (repr-input v))))
+      
+  -- <Helpers>
+    repr-disp-alg : ∀ {Δ} {S : Sig Δ} {γ : IndAlg S} (M : Spine (Δ ▷ Data S γ) → Ty)
+      → (β : Spine (disp-alg (ctors S γ) M))
+      → Spine (disp-alg (ctors S γ) (dRepr M))
+    
+    repr-disp-alg-def : ∀ {Δ} {S : Sig Δ} {γ : IndAlg S} (M : Spine (Δ ▷ Data S γ) → Ty)
+      → (β : Spine (disp-alg (ctors S γ) M))
+      → repr-disp-alg {γ = γ} M β ≡ disp-alg-map (λ δ → repr) (λ δ → unrepr) β
+      
+    unrepr-disp-alg : ∀ {Δ} {S : Sig Δ} {γ : IndAlg S} (M : Spine (Δ ▷ Data S γ) → Ty)
+      → (β : Spine (disp-alg (ctors S γ) (dRepr M)))
+      → Spine (disp-alg (ctors S γ) M)
+    
+    unrepr-disp-alg-def : ∀ {Δ} {S : Sig Δ} {γ : IndAlg S} (M : Spine (Δ ▷ Data S γ) → Ty)
+      → (β : Spine (disp-alg (ctors S γ) (dRepr M)))
+      → unrepr-disp-alg {γ = γ} M β ≡ disp-alg-map (λ δ → unrepr) (λ δ → repr) β
+  -- </Helpers>
         
-    repr-equiv-elim : ∀ {Δ} {S : Sig Δ} {γ} → (M : Spine (Δ ▷ Data S γ) → Ty)
+    -- Eliminators commute with repr/unrepr
+    repr-elim : ∀ {Δ} {S : Sig Δ} {γ} → (M : Spine (Δ ▷ Data S γ) → Ty)
       → (β : Spine (disp-alg (ctors S γ) M))
       → (δx : Spine (Δ ▷ Data S γ))
-      → elim M β δx ≡ apply-ind-sec γ (curry λ δ x → M (δ ⨾ unrepr x)) {!   !}  {!   !}
+      → repr (elim {γ = γ} M β δx) ≡ elim {γ = γ} (dRepr M) (repr-disp-alg {γ = γ} M β) δx
+    unrepr-elim : ∀ {Δ} {S : Sig Δ} {γ} → (M : Spine (Δ ▷ Data S γ) → Ty)
+      → (β : Spine (disp-alg (ctors S γ) (dRepr M)))
+      → (δx : Spine (Δ ▷ Data S γ))
+      → unrepr (elim {γ = γ} (dRepr M) β δx) ≡ elim {γ = γ} M (unrepr-disp-alg {γ = γ} M β) δx
+      
+    -- Here we could also postulate the equivalence of eliminating with elim vs γ.induction
