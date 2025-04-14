@@ -27,14 +27,11 @@ module _ where
   open MLTT-Ext
 
   postulate
-    -- Syntax of MLTT-Ext and a recursor.
+    -- Syntax of MLTT-Ext and a (very weak) recursor.
     --
     -- Agda cannot define syntax for second order theories natively.
     MLTT-Ext-syntax : MLTT-Ext
     MLTT-Ext-rec : (d : MLTT-Ext) → T MLTT-Ext-syntax ~> T d
-  
-  -- Could postulate additionally the computation rules for the
-  -- recursor, not needed here.
     
 -- The type of DataTT models
 --
