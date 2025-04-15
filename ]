@@ -4,9 +4,6 @@ module TT.Repr where
 open import Relation.Binary.PropositionalEquality.Core
   using (_≡_; refl; subst; sym; cong; trans; cong₂; cong-app)
 
-open import Relation.Binary.PropositionalEquality.Properties
-  using (dcong)
-
 open import TT.Utils
 open import TT.Core
 open import TT.Tel
@@ -230,3 +227,97 @@ record Repr-Data-structure
       
     -- Here we could also postulate the equivalence of eliminating with elim vs γ.induction
     
+module Repr-lemmas
+  (T : TT)
+  (T-R : Repr-structure T)
+  (T-MLTT : MLTT-structure T)
+  (T-Data : Data-structure T T-MLTT)
+  (T-Repr-Data : Repr-Data-structure T T-R T-MLTT T-Data) where
+  
+  open TT T
+  open Repr-structure T-R
+  open MLTT-structure T-MLTT
+  open Data-structure T-Data
+  open Repr-Data-structure T-Repr-Data
+  
+  
+  -- Internal isomorphism
+  _≃_ : (A : Ty) → (B : Ty) → Ty
+  _≃_ A B = [ f ∶ [ _ ∶ A ] ⇒ B ]
+    × [ g ∶ [ _ ∶ B ] ⇒ A ]
+    × [ _ ∶ [ a ∶ A ] ⇒ Id (app g (app f a)) a ]
+    × ([ b ∶ B ] ⇒ Id (app f (app g b)) b)
+    
+  Id-coe : ∀ {A B : Ty}
+    → Tm (Id (code A) (code B))
+    → Tm A
+    → Tm B
+  Id-coe p a =
+    coe-Tm U-η-1
+      (app (J (λ a' b' p → [ _ ∶ El a' ] ⇒ El b')
+        (λ a → lam (λ x → x)) p)
+      (coe-Tm (sym U-η-1) a))
+      
+  Id-sym : ∀ {A} {a b : Tm A}
+    → Tm (Id a b)
+    → Tm (Id b a)
+  Id-sym p = J (λ a b p → Id b a) (λ t → rfl t) p
+  
+  Id-trans : ∀ {A} {a b c : Tm A}
+    → Tm (Id a b)
+    → Tm (Id b c)
+    → Tm (Id a c)
+  Id-trans {A} {a} {b} {c} p q = app
+    (J (λ a b p → [ _ ∶ Id b c ] ⇒ Id a c)
+    (λ _ → lam (λ y → y)) p) q
+    
+  Id-cong : ∀ {A B} {a b : Tm A}
+    → (f : Tm A → Tm B) 
+    → Tm (Id a b)
+    → Tm (Id (f a) (f b))
+  Id-cong {A} {a} {b} f p = 
+    J (λ a b p → Id (f a) (f b))
+      (λ t → rfl _) p
+      
+  -- Id-coe-remove : ∀ {A B} {a : Tm A} {b : Tm B}
+  --   → (p : Tm (Id (code A) (code B)))
+  --   → Tm (Id (Id-coe p a) b)
+  --   → Tm (Id (Id-coe p a) b)
+
+  -- lemma : (Q : Tm (Id (code (Repr A))) (Id (code (Repr B))) → Ty)
+  --   → (q : (p : Tm (Id (code (Repr A))) (Id (code (Repr B)))) → Tm (Q p))
+  --   → 
+
+  -- Repr is injective up to internal isomorphism
+  Repr-injective : ∀ {A B : Ty}
+    → Tm (Id (code (Repr A)) (code (Repr B)))
+    → Tm (A ≃ B)
+  Repr-injective {A} {B} p =
+    pair (lam (λ a → unrepr (Id-coe p (repr a))))
+      (pair (lam (λ b → unrepr (Id-coe (Id-sym p) (repr b))))
+        (pair
+          (lam (λ a' → Id-trans
+            (Id-lift Π-β)
+            (Id-trans
+              (Id-cong unrepr
+                (Id-trans (Id-cong (Id-coe (Id-sym p)) (Id-cong repr (Id-trans (Id-lift Π-β) {!   !}))) {!   !}))
+                -- (J (λ a1 b1 p' → let x = {!   !} in
+                -- [ _ ∶ Id a1 (code (Repr A)) ] ⇒ [ _ ∶ Id b1 (code (Repr B)) ] ⇒
+                -- Id (Id-coe (J ( λ a₁ b p₁ → Id b a₁) rfl p) ( repr ( app ( lam ( λ a → unrepr ( Id-coe p ( repr a)))) a'))) ( repr a'))
+                --   {!   !} p))
+              (Id-lift Repr-η-1))))
+          (lam (λ b' → Id-trans
+            (Id-lift Π-β)
+            (Id-trans
+              (Id-cong unrepr {!   !})
+              (Id-lift Repr-η-1))))))
+
+  Repr-injective' : ∀ {A B : Ty}
+    → Repr A ≡ Repr B
+    → Tm (A ≃ B)
+  Repr-injective' {A} {B} refl = ?
+    -- pair (lam (λ a → unrepr (coe-Tm p (repr a))))
+    --   (pair (lam (λ b → unrepr (coe-Tm (sym p) (repr b))))
+    --     (pair
+    --       (lam (λ a' → Id-trans (Id-lift Π-β) {!   !}))
+    --       (lam (λ b' → {!   !}))))

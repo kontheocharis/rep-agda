@@ -24,7 +24,7 @@ record U-structure (T : TT) : Set1 where
 
     U-η-1 : ∀ {A} → El (code A) ≡ A
     U-η-2 : ∀ {t} → code (El t) ≡ t
-
+    
 -- Functions
 record Π-structure (T : TT) : Set1 where
   open TT T
@@ -156,9 +156,18 @@ record Id-structure (T : TT) : Set1 where
         
     Id-β : ∀ {A} {P} {a} {r : (a : Tm A) → Tm (P a a (rfl a))}
       → J P r (rfl a) ≡ r a
-      
+
   Id-uip-right : ∀ {A} {a b : Tm A} (p : A ≡ A) → Tm (Id a b) → Tm (Id a (coe-Tm p b))
   Id-uip-right {A = A} {a = a} {b = b} refl p = p
+
+  Id-uip-left : ∀ {A} {a b : Tm A} (p : A ≡ A) → Tm (Id a b) → Tm (Id (coe-Tm p a) b)
+  Id-uip-left {A = A} {a = a} {b = b} refl p = p
+  
+  Id-cong-defn : ∀ {A} {a a' b b' : Tm A} (p : a ≡ a') → (q : b ≡ b') → Id a b ≡ Id a' b'
+  Id-cong-defn {A = A} {a = a} {b = b} refl refl = refl
+  
+  Id-lift : ∀ {A} {a b : Tm A} → a ≡ b → Tm (Id a b)
+  Id-lift {A = A} {a = a} {b = b} refl = rfl _
       
 record Id-extensional (T : TT) (T-Id : Id-structure T) : Set1 where
   open TT T

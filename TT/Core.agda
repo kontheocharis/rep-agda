@@ -27,4 +27,4 @@ record _~>_ (a : TT) (b : TT) : Set1 where
     Ty~> : a .Ty → b .Ty
     Tm~> : ∀ {A} → a .Tm A → b .Tm (Ty~> A)
     
-  
+   
