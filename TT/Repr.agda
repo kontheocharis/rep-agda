@@ -16,7 +16,7 @@ record Repr-structure (T : TT) : Set1 where
   open TT T
   field
     -- This introduces the Repr modality which is an idempotent
-    -- modality with the property that Repr A ≃ A definitionally by
+    -- up-to-isomorphism fibered modality with the property that Repr A ≃ A by
     -- the η rules Repr-η-1 and Repr-η-2.
     
     -- Its role is purely intensional: relate data types to their

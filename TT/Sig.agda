@@ -183,11 +183,11 @@ module Sig-construction {T : TT} (T-MLTT : MLTT-structure T) where
     ⇒ [ β ∷ disp-alg α (λ δx → El (apps Y δx)) ]
     ⇒ Σs (σ ∶ [ δx ∷ Δ ▷ X ] ⇒ dEls Y δx , coh β (apps σ))
     
-  -- An inductive algebra packages the carrier, the algebra and the induction principle
-  -- This is what we will add to the syntax.
+  -- An inductive algebra packages the carrier, the algebra and the induction
+  -- principle This is what we will add to the syntax.
   --
-  -- Notice that there is no occurrence of any members of T in here, so the resulting
-  -- syntax after adding IndAlg is still just second-order.
+  -- Notice that there are no negative occurrences of any members of T in here,
+  -- so the resulting syntax after adding IndAlg is still just second-order.
   record IndAlg {Δ : Tel} (S : Sig Δ) : Set where
     field
       Carrier : Tm ([ δ ∷ Δ ] ⇒ U)
