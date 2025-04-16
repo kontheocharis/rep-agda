@@ -118,3 +118,34 @@ module 𝓡 where
 
   𝓡-Tm~ : ∀ {A} {t u : D-Tm A} → t ≡ u → 𝓡-Tm t ≡ 𝓡-Tm u
   𝓡-Tm~ refl = refl
+  
+
+-- DataTT + extensionality also contains a model of MLTT + extensionality
+module INJ
+  (datatt : DataTT)
+  (id-ext : Id-extensional (DataTT.T datatt) (MLTT-structure.T-Id (DataTT.T-MLTT datatt)))
+  where
+  open TT
+  open MLTT-Ext
+  open DataTT
+  open Id-extensional
+  
+  mltt : MLTT-Ext
+  
+  mltt .T = datatt .T
+  mltt .T-MLTT = datatt .T-MLTT
+  mltt .T-Id-ext = id-ext
+  
+
+-- R is a left inverse of INJ (as morphisms of models)
+module R-left-inverse (mltt : MLTT-Ext) where
+  mltt' : MLTT-Ext
+  mltt' = INJ.mltt (R.datatt mltt) (MLTT-Ext.T-Id-ext mltt)
+
+  -- Because we are using records, and are grouping MLTT together, agda can
+  -- infer this :) (See "Base structure is the same" in R)
+  R-left-inv : mltt ≡ mltt'
+  R-left-inv = refl
+  
+
+  

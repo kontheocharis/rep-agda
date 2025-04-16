@@ -9,6 +9,16 @@ open import TT.Data
 open import TT.Repr
 open import TT.Sig
 
+-- The type of intensional MLTT models
+record MLTT : Set1 where
+  open MLTT-structure
+  field
+    T : TT
+    T-MLTT : MLTT-structure T
+
+  open MLTT-structure T-MLTT public
+  open TT T public
+
 -- The type of extensional MLTT models
 --
 -- This is just MLTT with the equality reflection rule.
